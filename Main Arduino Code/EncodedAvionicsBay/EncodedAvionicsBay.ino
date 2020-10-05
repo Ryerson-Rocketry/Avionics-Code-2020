@@ -333,15 +333,7 @@ delay(100);
   // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   
   GPS.begin(9600);
-if (GPS.begin(9600))
-{
-  Serial.println(F("GPS SERIAL BEGAN"));
-}
-  else if (! GPS.begin(9600))
-  {
-    Serial.println(F("GPS SERIAL HASNT BEGAN!!!"));
-    return;
-  }
+
   
   // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
@@ -361,120 +353,98 @@ if (GPS.begin(9600))
   //GPS.sendCommand(PGCMD_ANTENNA);
 // Ask for firmware version
   //GPSSerial.println(PMTK_Q_RELEASE); // GPSSerial for MEGA,mySerial for uno
- /* --------------for LOCUS datalogging:
+
  
-   while (!Serial); //wait' until the Serial bus is connected(USB)
-  #ifndef ESP8266 // Not on ESP8266
-  useInterrupt(true);
-#endif
-Serial.print("\nSTARTING LOGGING....");
-  if (GPS.LOCUS_StartLogger())
-    Serial.println(" STARTED!");
-  else
-    Serial.println(" no response :(");
- 
- */
- 
+  delay(500);
 
 }
 
  // put your main code below, to run repeatedly:
-uint32_t timer = millis();
+//uint32_t timer = millis();
 
 void loop() {
     
+    //===========================GPS:=======================
+  
+  // read data from the GPS in the 'main loop'
+  while (GPS.available()>0)
+  { 
+  char c = GPS.read();
+     Serial.write(c);
+       Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
+
+
+  
+  }
+     if (GPS.fix) {
+      Serial.println(" ");
+      Serial.println(F("GPS FIX"));
+
+    }
+  Serial.println(" ");
+  
+if (GPS.newNMEAreceived())
+{
+if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+  {
+  GPS.parse(GPS.lastNMEA()); 
+    Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
+ 
+  //Serial.println(GPS.lastNMEA());
+  }
+}
+
+
+  // =============Applying the encoder:===============
+
+  int i,t=0;
+  uint32_t int_data;
+  uint8_t encGPS_lat[8],encGPS_long[8],encpoten[8],encTemp[8],encPress[8],encAlt[8],encAccelX[8],encAccelY[8],encAccelZ[8];
+  
+  
+
+//Adafruit GPS:
+ 
+
+   Serial.print(F(" GPS lat:  "));
+      //temp = bmp.readTemperature();
+   // Serial.print(temp);
+        Serial.print(GPS.latitude);
+        Serial.print(GPS.lat);
+  Serial.print(F(" = "));
+  encode(GPS.latitude, 0x01, t, encGPS_lat);
+   for (i=0;i<8;i++)
+  {
+    Serial.print(encGPS_lat[i],HEX);
+  }
+  Serial.println(" ");
+ Serial.print(F(" GPS long:  "));
+   
+        Serial.print(GPS.longitude);
+        Serial.print(GPS.lon);
+  Serial.print(F(" = "));
+  encode(GPS.longitude, 0x02, t, encGPS_long);
+   for (i=0;i<8;i++)
+  {
+    Serial.print(encGPS_long[i],HEX);
+  }
+
+
+   Serial.println(" ");
+Serial.print(F("GPS #satillites and angle respectfully are:   "));
+
+Serial.print(GPS.satellites);
+Serial.print(",     ");
+Serial.println(GPS.angle);
+
+//=========================== ADXL377 accelerometer:========================
+
   unsigned int rawX = analogRead(A0);
 unsigned int rawY = analogRead(A1);
 unsigned int  rawZ = analogRead(A2);
  Serial.println("");
-Serial.print(F("Timer is:"));
-Serial.println(timer);
-Serial.print(F("Millis() is:"));
-Serial.println(millis());
- //if (Serial.available())
-  //{
-  //GPS.flush();
-  
+
  
-// --------------------GPS:--------------------------
-
-  
-   // if you want to debug, this is a good time to do it!
-  if (GPS.available()>0)
-  { 
-     char c = GPS.read();
-
-  if (GPSECHO)
-  {
-    if (c) 
-    {
-      Serial.println(c);
-    }
-  }
-  // if a sentence is received, we can check the checksum, parse it...
-  if (GPS.newNMEAreceived()) {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-    Serial.println(F("GPS RECEIVED NEW NMEA DATA"));
-    Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-    if (GPS.parse(GPS.lastNMEA()))
-    {
-      Serial.println(F("GPS NMEA DATA PARSED"));
-    }
-    else if (!GPS.parse(GPS.lastNMEA()))
-    {
-      // this also sets the newNMEAreceived() flag to false
-      Serial.println(F("NO GPS PARSING OCCURED"));
-      return;  // we can fail to parse a sentence in which case we should just wait for another
-  }
-  }
-  else if (!GPS.newNMEAreceived())
-  {
-    Serial.println(F("NO NEW GPS NMEA DATA RECEIVED"));
-  }
-
-  // approximately every 2 seconds or so, print out the current stats
-  if (millis() - timer > 2000) {
-    timer = millis(); // reset the timer
-    Serial.print("\nTime: ");
-    if (GPS.hour < 10) { Serial.print('0'); }
-    Serial.print(GPS.hour, DEC); Serial.print(':');
-    if (GPS.minute < 10) { Serial.print('0'); }
-    Serial.print(GPS.minute, DEC); Serial.print(':');
-    if (GPS.seconds < 10) { Serial.print('0'); }
-    Serial.print(GPS.seconds, DEC); Serial.print('.');
-    if (GPS.milliseconds < 10) {
-      Serial.print("00");
-    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
-      Serial.print("0");
-    }
-    Serial.println(GPS.milliseconds);
-    Serial.print("Date: ");
-    Serial.print(GPS.day, DEC); Serial.print('/');
-    Serial.print(GPS.month, DEC); Serial.print("/20");
-    Serial.println(GPS.year, DEC);
-    Serial.print("Fix: "); Serial.print((int)GPS.fix);
-    Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
-    if (GPS.fix) {
-      Serial.print("Location: ");
-      Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
-      Serial.print(", ");
-      Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-      Serial.print("Speed (knots): "); Serial.println(GPS.speed);
-      Serial.print("Angle: "); Serial.println(GPS.angle);
-      Serial.print("Altitude: "); Serial.println(GPS.altitude);
-      Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
-    }
-    else if (!GPS.fix)
-    {
-      Serial.println(F("NO GPS FIX"));
-    }
-  }
-  }
- // if (Serial.available() >0)
- // {
-// ADXL377 accelerometer:
 
  Serial.print(F("Raw Accel at 0g is:"));
   Serial.println(AccelRaw_zerog);
@@ -512,8 +482,7 @@ Serial.print(rawY);
   Serial.print(", ");
  Serial.println(rawZ);
 
- //Serial.print("      the amount of iterations is:");
-//Serial.println(samplingTime);
+
 
  
 
@@ -538,12 +507,12 @@ Serial.print(rawY);
 // rawAccel: currently using avg = 346,345,345 (x,y,z respectively)
 
 
-AvgRawAccelx = sumX / Maxcount;
+AvgRawAccelx = sumX / count;
 
-AvgRawAccely = sumY / Maxcount;
+AvgRawAccely = sumY / count;
 
 
-AvgRawAccelz = sumZ / Maxcount;
+AvgRawAccelz = sumZ / count;
 
   Serial.print(F("Average raw Accel(X,Y,Z) respectively are:" ));  
   Serial.print(AvgRawAccelx);
@@ -597,117 +566,8 @@ AvgRawAccelz = sumZ / Maxcount;
  Yscaled7 =   map_float(AccelAdjustment[1], 0, AccelRaw_MAX, -scale, scale);
  Zscaled7 =   map_float(AccelAdjustment[2], 0, AccelRaw_MAX, -scale, scale);//template==> map_float(value,minOldRange,maxOldRange,minNewRange,MaxNewRange)
  Serial.println("");
- 
-  
-  //--------- MPL311A2 barometric sensor:----------
-  /*
-   * reason its better than the bmp280 is because its easier to setup(w/ code)
-   * theres no conversion equations needed (pressure to height,etc) and its more 
-   * accurate and req. less power to run.
+   // =============Applying the encoder:===============
 
-   */
-   // calibrating mpl sensor==> https://github.com/mariocannistra/MPL3115A2/blob/master/examples/barometer_calibration/barometer_calibration.ino
-   /*
-   
-  float pascals = baro.getPressure();
-  // Our weather page presents pressure in Inches (Hg)
-  // Use http://www.onlineconversion.com/pressure.htm for other units
-  Serial.print(pascals/3377); Serial.println(" Inches (Hg)");
-
-  float altm = baro.getAltitude();
-  Serial.print(altm); Serial.println(" meters");
-
-  float tempC = baro.getTemperature();
-  Serial.print(tempC); Serial.println("*C");
-  
-
-*/
- 
-
-  // =============Applying the encoder:===============
-
-  int i,t=0;
-  uint32_t int_data;
-  uint8_t encGPS_lat[8],encGPS_long[8],encpoten[8],encTemp[8],encPress[8],encAlt[8],encAccelX[8],encAccelY[8],encAccelZ[8];
-  
-  
-
-//Adafruit GPS:
- 
-
-   Serial.print(F(" GPS lat:  "));
-      //temp = bmp.readTemperature();
-   // Serial.print(temp);
-        Serial.print(GPS.latitude);
-  Serial.print(F(" = "));
-  encode(GPS.latitude, 0x01, t, encGPS_lat);
-   for (i=0;i<8;i++)
-  {
-    Serial.print(encGPS_lat[i],HEX);
-  }
- Serial.println(F(" GPS long:  "));
-      //temp = bmp.readTemperature();
-   // Serial.print(temp);
-        Serial.print(GPS.lon);
-  Serial.print(F(" = "));
-  encode(GPS.longitude, 0x02, t, encGPS_long);
-   for (i=0;i<8;i++)
-  {
-    Serial.print(encGPS_long[i],HEX);
-  }
-
-
-
-  
-
-  //bmp280 temperature:
-  Serial.println();
-      Serial.print(F("bmp temp(C):  "));
-      //temp = bmp.readTemperature();
-   // Serial.print(temp);
-        Serial.print(bmp.readTemperature());
-  Serial.print(F(" = "));
-  encode(bmp.readTemperature(), 0x06, t, encTemp);
-   for (i=0;i<8;i++)
-  {
-    Serial.print(encTemp[i],HEX);
-  }
-  Serial.println();
-
-  // bmp pressure;
-      Serial.print(F("bmp pressure(Pa):  "));
-    Serial.print(bmp.readPressure());
-  Serial.print(F(" = "));
-  encode(bmp.readPressure(),0x07, t, encPress);
-   for (i=0;i<8;i++)
-  {
-    Serial.print(encPress[i],HEX);
-  }
-  Serial.println();
-
-//bmp altitude:
-      Serial.print(F("bmp alt(m):  "));
-    Serial.print(bmp.readAltitude(1013.25));// 1013.25 is SL pressure in hPa
-  Serial.print(F(" = "));
-  encode(bmp.readAltitude(1013.25),0x00 , t, encAlt);
-  //Serial.println();
-  
-
-// printing the encoder values, bit by bit: 
-  for (i=0;i<8;i++)
-  {
-    Serial.print(encAlt[i],HEX);
-  
-  }
-
-
-  Serial.println();
-
-
-// printing the encoder values, bit by bit: 
- 
- 
- 
 // ADXL377:
    
     Serial.print(F("scaledX acceleration(g):  "));
@@ -739,12 +599,67 @@ AvgRawAccelz = sumZ / Maxcount;
   {
     Serial.print(encAccelZ[i],HEX);
   }
+  Serial.println(" ");
 
+  
+     // =============Applying the encoder:===============
+
+
+  
+
+  //bmp280 temperature:
+  Serial.println();
+      Serial.print(F("bmp temp(C):  "));
+      //temp = bmp.readTemperature();
+   // Serial.print(temp);
+        Serial.print(bmp.readTemperature());
+  Serial.print(F(" = "));
+  encode(bmp.readTemperature(), 0x06, t, encTemp);
+   for (i=0;i<8;i++)
+  {
+    Serial.print(encTemp[i],HEX);
+  }
+  Serial.println();
+
+  // bmp pressure;
+      Serial.print(F("bmp pressure(Pa):  "));
+    Serial.print(bmp.readPressure());
+  Serial.print(F(" = "));
+  encode(bmp.readPressure(),0x07, t, encPress);
+   for (i=0;i<8;i++)
+  {
+    Serial.print(encPress[i],HEX);
+  }
+  Serial.println();
+
+//bmp altitude:
+      Serial.print(F("bmp alt(m):  "));
+    Serial.print(bmp.readAltitude());// 1013.25 is SL pressure in hPa
+  Serial.print(F(" = "));
+  encode(bmp.readAltitude(),0x00 , t, encAlt);
+  
+  
+
+// printing the encoder values, bit by bit: 
+  for (i=0;i<8;i++)
+  {
+    Serial.print(encAlt[i],HEX);
+  
+  }
+
+
+  Serial.println();
+
+
+// printing the encoder values, bit by bit: 
+ 
+ 
+ 
 // MPU gyro:
 
   
         t++;
-delay(1500);// for MPU-AXL377: Minimum delay of 2 milliseconds between sensor reads (500 Hz)
+delay(500);// for MPU-AXL377: Minimum delay of 2 milliseconds between sensor reads (500 Hz)
 //}
 
 }
@@ -788,37 +703,3 @@ float ReadAltitude(float seaLevelhPa) {
   altitude = 44330 * (1.0 - pow(pressure / seaLevelhPa, 0.1903));
   return altitude;
 }
-
-// ----------------------for ultimate GPS LOCUS Datalogging:
-// Interrupt is called once a millisecond, looks for any new GPS data, and stores it
-/*
-#ifndef ESP8266 // Not on ESP8266
-ISR(TIMER0_COMPA_vect) {
-  char c = GPS.read();
-  // if you want to debug, this is a good time to do it!
-  if (GPSECHO && c) {
-#ifdef UDR0
-    UDR0 = c;
-    // writing direct to UDR0 is much much faster than Serial.print
-    // but only one character can be written at a time.
-#else
-    Serial.write(c);
-#endif
-  }
-}
-
-void useInterrupt(bool v) {
-  if (v) {
-    // Timer0 is already used for millis() - we'll just interrupt somewhere
-    // in the middle and call the "Compare A" function above
-    OCR0A = 0xAF;
-    TIMSK0 |= _BV(OCIE0A);
-    usingInterrupt = true;
-  } else {
-    // do not call the interrupt function COMPA anymore
-    TIMSK0 &= ~_BV(OCIE0A);
-    usingInterrupt = false;
-  }
-}
-#endif // ESP8266
- */

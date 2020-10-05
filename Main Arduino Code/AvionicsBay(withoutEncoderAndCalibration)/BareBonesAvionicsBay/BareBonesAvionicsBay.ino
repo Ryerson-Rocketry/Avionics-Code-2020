@@ -31,14 +31,16 @@ Adafruit_BMP280 bmp; // I2C
 // Connect the GPS RX (receive) pin to Digital 7
 
 // you can change the pin numbers to match your wiring:
-SoftwareSerial mySerial(8, 7);
-Adafruit_GPS GPS(&mySerial);
+//SoftwareSerial mySerial(1, 0);
+#define GPSSerial Serial1
+
+Adafruit_GPS GPS(&GPSSerial);
 
 // Set GPSECHO to 'false' to turn off echoing the GPS data to the Serial console
 // Set to 'true' if you want to debug and listen to the raw GPS sentences
 #define GPSECHO false
 
-uint32_t timer = millis();
+//uint32_t timer = millis();
 
 //================================================
 void setup()
@@ -63,9 +65,9 @@ void setup()
   // print it out we don't suggest using anything higher than 1 Hz
 
   // Request updates on antenna status, comment out to keep quiet
-  GPS.sendCommand(PGCMD_ANTENNA);
+ // GPS.sendCommand(PGCMD_ANTENNA);
 // Ask for firmware version
-  mySerial.println(PMTK_Q_RELEASE);
+  //mySerial.println(PMTK_Q_RELEASE);
 
 //==============BMP280:======================
 
@@ -85,56 +87,64 @@ if (!bmp.begin()) {
 //=============ADXL377:======================  
   
  //========================================== 
-  delay(1000);
 
-  
+  delay(500);
 }
 
 void loop() // run over and over again
 {
-  //===========================GPS:=======================
+  
+  
+    //===========================GPS:=======================
   
   // read data from the GPS in the 'main loop'
+  while (GPS.available()>0)
+  { 
   char c = GPS.read();
-  // if you want to debug, this is a good time to do it!
-  if ((c) && (GPSECHO))
-    Serial.write(c);
+     Serial.write(c);
+       Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
 
-  // if a sentence is received, we can check the checksum, parse it...
-  if (GPS.newNMEAreceived()) {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
 
-    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-      return;  // we can fail to parse a sentence in which case we should just wait for another
+  
   }
+     if (GPS.fix) {
+      Serial.println(" ");
+      Serial.println(F("GPS FIX"));
 
-  // approximately every 2 seconds or so, print out the current stats
-  if (millis() - timer > 2000) {
-    timer = millis(); // reset the timer
-
-    Serial.print("\nTime: ");
-    if (GPS.hour < 10) { Serial.print('0'); }
-    Serial.print(GPS.hour, DEC); Serial.print(':');
-    if (GPS.minute < 10) { Serial.print('0'); }
-    Serial.print(GPS.minute, DEC); Serial.print(':');
-    if (GPS.seconds < 10) { Serial.print('0'); }
-    Serial.print(GPS.seconds, DEC); Serial.print('.');
-    if (GPS.milliseconds < 10) {
-      Serial.print("00");
-    } else if (GPS.milliseconds > 9 && GPS.milliseconds < 100) {
-      Serial.print("0");
     }
-    Serial.println(GPS.milliseconds);
-    Serial.print("Date: ");
-    Serial.print(GPS.day, DEC); Serial.print('/');
-    Serial.print(GPS.month, DEC); Serial.print("/20");
-    Serial.println(GPS.year, DEC);
-    Serial.print("Fix: "); Serial.print((int)GPS.fix);
-    Serial.print(" quality: "); Serial.println((int)GPS.fixquality);
+  Serial.println(" ");
+  
+if (GPS.newNMEAreceived())
+{
+if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+  {
+  GPS.parse(GPS.lastNMEA()); 
+    Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
+ 
+  //Serial.println(GPS.lastNMEA());
+  }
+}
+
+   float GPSlat = GPS.latitude; 
+  float GPSlon = GPS.longitude;
+
+Serial.print(F("GPS DATA (lat,lon,#satillites,angle) respectfully are:   "));
+Serial.print(GPSlat);
+Serial.print(GPS.lat);
+Serial.print(",     ");
+Serial.print(GPSlon);
+Serial.print(GPS.lon);
+Serial.print(",     ");
+Serial.print(GPS.satellites);
+Serial.print(",     ");
+Serial.print(GPS.angle);
+
+
+ 
+  /*
+    
     if (GPS.fix) {
+
       Serial.print("Location: ");
       Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
       Serial.print(", ");
@@ -145,9 +155,12 @@ void loop() // run over and over again
       Serial.print("Altitude: "); Serial.println(GPS.altitude);
       Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
     }
-  }
+    
+  */
+//Serial.flush();
+ 
   //======================BMP280:==================
-
+Serial.println("  ");
 Serial.print(F("Temperature = "));
     Serial.print(bmp.readTemperature());
     Serial.println(" *C");
@@ -157,24 +170,48 @@ Serial.print(F("Temperature = "));
     Serial.println(" Pa");
 
     Serial.print(F("Approx altitude = "));
-    Serial.print(bmp.readAltitude(1013.25)); // Adjusted to local forecast! 
+    Serial.print(bmp.readAltitude()); // Adjusted to local forecast! 
     Serial.println(" m");
 
     Serial.println();
   
   //=====================ADXL377:==================
-   /*
+   
    unsigned int rawX = analogRead(A0);//analogRead(analogPinX);
   unsigned int rawY = analogRead(A1);
-  unsigned int  rawZ = analogRead(A2);
+  unsigned int  rawZ = analogRead(A4);
 
-  Serial.print("The raw Accel. values(X,Y,Z respectively) are:");
+  Serial.print(F("The raw Accel. values(X,Y,Z respectively) are:"));
   Serial.print(rawX);
   Serial.print(",  ");
   Serial.print(rawY);
   Serial.print(",  ");
   Serial.println(rawZ); 
-  */
-  //===============================================
-  delay(2000);
+
+  //===================WRITING TO SERIAL FOR ACTUAL DATA TRANSMISSION:============================
+
+/*  
+ //-------GPS------
+Float2Byte(GPSlat);
+Float2Byte(GPSlon);
+Float2Byte(GPSspeed);
+// ---- Accelerometer-----
+
+// ------Barometer------
+
+
+*/
+ delay(500);
+}
+
+//-----------from last years code:------------ 
+void Float2Byte(float f) { // Converts floats to bytes and writes them to serial
+  byte * b = (byte *) &f; // pointer b points to f address (after it converts to byte) , then b is assigned to f data in byte form  
+  //  Serial.print("f:"); // data type
+  Serial.write(b[0]);
+  Serial.write(b[1]);
+  Serial.write(b[2]);
+  Serial.write(b[3]);
+
+  
 }

@@ -83,6 +83,8 @@ float deviation,deviation2,Deviation,Deviation2,Deviation3,Deviation4,SumDeviati
 float deviationY,deviationZ,DeviationY,DeviationZ,SumDeviationY,SumDeviationZ;
 float Min_rawY=512,Max_rawY=512,Min_rawZ=512,Max_rawZ=512;
 
+// float scaledX = 0, scaledY = 0, scaledZ = 0; //TODO (JB):
+
 void setup() {
   /*
   "analogReference(EXTERNAL)":
@@ -332,6 +334,12 @@ float AvgAccelX3,AvgAccelX4,AvgAccelY4,AvgAccelZ4,k3,k4,c4,d4,Error2,ErrorY2,Err
   scaledY = map_float(rawY, 273 ,1023, -scale, scale);
   scaledZ = map_float(rawZ, 273, 1023, -scale, scale);
   
+  //TODO (JB): Compare check whether new low pass filter function is a more effective way to scale acceleration values
+  //	scaledX = LowPassFilter(scaledX, rawX, 0.9);
+  //	scaledY = LowPassFilter(scaledY, rawY, 0.9);
+  //	scaledZ = LowPassFilter(scaledZ, rawZ, 0.9);
+  
+  
  //1296 is 1023 + 273 rawX,Y,Z values found (so just adjust the max/min possible ranges to calibrate) so 0g (512 raw) is now 273 raw values
 Serial.print("The scale accel (X,Y,Z) values (from adjusting raw range from 0g being 512 to 273) is:");
 Serial.print(scaledX);
@@ -405,4 +413,13 @@ int ReadAxis(int axisPin)
  
   return reading/sampleSize;
  
+}
+
+
+// Filters Data through a low pass filter. Use "alpha" to adjust filter strength.
+float LowPassFilter(double OldVal, double NewRawVal, double alpha)
+{
+	float ProcessedVal;
+	ProcessedVal = alpha * OldVal + (NewRawVal - OldVal) * (alpha - 1);
+	return ProcessedVal;
 }

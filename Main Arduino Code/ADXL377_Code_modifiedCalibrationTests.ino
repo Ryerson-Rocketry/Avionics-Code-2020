@@ -83,7 +83,7 @@ float deviation,deviation2,Deviation,Deviation2,Deviation3,Deviation4,SumDeviati
 float deviationY,deviationZ,DeviationY,DeviationZ,SumDeviationY,SumDeviationZ;
 float Min_rawY=512,Max_rawY=512,Min_rawZ=512,Max_rawZ=512;
 
-// float scaledX = 0, scaledY = 0, scaledZ = 0; //TODO (JB):
+float scaledX = 0, scaledY = 0, scaledZ = 0; //TODO (JB):
 
 void setup() {
   /*
@@ -329,15 +329,13 @@ float AvgAccelX3,AvgAccelX4,AvgAccelY4,AvgAccelZ4,k3,k4,c4,d4,Error2,ErrorY2,Err
 //----------------------------------------------------------------------------------
  
     
-  float scaledX, scaledY, scaledZ;
-  scaledX = map_float(rawX, 273, 1023, -scale, scale); //1023 for 3.3V, 675(=(3.3/5)*1023) for 5V
-  scaledY = map_float(rawY, 273 ,1023, -scale, scale);
-  scaledZ = map_float(rawZ, 273, 1023, -scale, scale);
+  
+  
   
   //TODO (JB): Compare check whether new low pass filter function is a more effective way to scale acceleration values
-  //	scaledX = LowPassFilter(scaledX, rawX, 0.9);
-  //	scaledY = LowPassFilter(scaledY, rawY, 0.9);
-  //	scaledZ = LowPassFilter(scaledZ, rawZ, 0.9);
+  scaledX = LowPassFilter(scaledX, rawX, 0.9);
+  scaledY = LowPassFilter(scaledY, rawY, 0.9);
+  scaledZ = LowPassFilter(scaledZ, rawZ, 0.9);
   
   
  //1296 is 1023 + 273 rawX,Y,Z values found (so just adjust the max/min possible ranges to calibrate) so 0g (512 raw) is now 273 raw values
@@ -363,7 +361,6 @@ float accelXmoving = 560, deviation_accelX,deviation_VoltX,Avg_VoltX=1.5345;
     zero_g_X= AvgRawAccelx;
 
 accelX_adjusted= (((rawX)-zero_g_X)*3.3/1024)/sensitivityFactor;  //from:https://forum.arduino.cc/index.php?topic=520719.0
-float accelX_adjust2= scaledX-accelX_adjusted;
 
  Serial.print("Note: that the following voltage values are found by using the map_float function==>");
   Serial.print("Vx is: ");

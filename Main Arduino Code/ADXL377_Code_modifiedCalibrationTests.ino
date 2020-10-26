@@ -417,6 +417,6 @@ int ReadAxis(int axisPin)
 float LowPassFilter(double OldVal, double NewRawVal, double alpha)
 {
 	float ProcessedVal;
-	ProcessedVal = alpha * OldVal + (NewRawVal - OldVal) * (alpha - 1);
+	ProcessedVal = alpha * OldVal + (NewRawVal) * (1 - alpha);
 	return ProcessedVal;
-}
+x`}

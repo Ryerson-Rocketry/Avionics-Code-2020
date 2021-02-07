@@ -355,7 +355,7 @@ delay(100);
   //GPSSerial.println(PMTK_Q_RELEASE); // GPSSerial for MEGA,mySerial for uno
 
  
-  delay(500);
+  //delay(5);
 
 }
 

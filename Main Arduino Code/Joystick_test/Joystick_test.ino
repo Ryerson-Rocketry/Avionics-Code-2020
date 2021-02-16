@@ -1,6 +1,6 @@
-#define joyX A0
-#define joyY A1
-#define joyX2 A3
+#define joyX A8
+#define joyY A7
+#define joyX2 A9
 void setup() {
   Serial.begin(9600);
 }

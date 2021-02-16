@@ -5,7 +5,6 @@
 #include <encoder_rrc_v2_4.h>
 
 
-#include <Adafruit_MPL3115A2.h>
 #include <Adafruit_BMP280.h>
 
 
@@ -17,7 +16,38 @@
 #include <Wire.h>
 #include <SPI.h>
 
-//-----------------bmp280----------------------------
+// ***************************** DEFINING GLOBAL VARIABLES:****************************************
+
+//==================== 1. BMP280=================================
+
+ // ******************** I2C PACKET STRUCTURE: ******************
+  
+  /*
+   The I2C hanshake process is as follows(the wire function calls written next to bit indices arent confirmed yet
+   and is just a theory/my ideas on the matter):
+   
+     Master: 
+    
+    [Start bit(Wire.begin()), Address byte(Wire.beginTransmission(Address)),
+    Read/Write bit(Wire.requestFrom(addr,#bytes to receive/read)/Wire.write()), ACK/NACK bit, data byte 1(for Write:usually used as a
+    register byte(think of like a specific address we want to read/write data to/from))(both read and write use Wire.write() to signify which register we want to deal w/),
+    ACK/NACK bit,data byte 2(typically the actual data to write to the register)(for reading: indicates the # of bytes to receive(Wire.requestFrom()), ACK/NACK bit, Stop bit]
+
+
+      
+     **NOTE***: 
+          ==> ACK/NACK bits are sent by the slave
+          ==> Wire.requestFrom() for reading and Wire.write() for writing adds data to their respective buffer
+            ==> Whereas, Wire.read() for reading and Wire.endTransmission(false or true) releases the data from their respective buffers
+              ==>Wire.endTransmission(false) maybe gives a terminator-Stop bit which sends the previous Wire.write() buffer then sends a Start bit to initialize transmission once more.
+
+          ==> Both Wire.write() and Wire.read()deals with writing/reading 1 byte at a time
+
+            
+         
+   
+   */
+  //*****************************************************************
 
 Adafruit_BMP280 bmp; // use I2C interface
 Adafruit_Sensor *bmp_temp = bmp.getTemperatureSensor();
@@ -35,56 +65,55 @@ Adafruit_Sensor *bmp_pressure = bmp.getPressureSensor();
 
 //Adafruit_BMP280 bmp(BMP_CS); // hardware SPI
 //Adafruit_BMP280 bmp(BMP_CS, BMP_MOSI, BMP_MISO,  BMP_SCK);
-//--------------------MPL311A2 BAROMETER:--------------------------------
-
-// Power by connecting Vin to 3-5V, GND to GND
-// Uses I2C - connect SCL to the SCL pin, SDA to SDA pin
-// See the Wire tutorial for pinouts for each Arduino
-// http://arduino.cc/en/reference/wire
-//Adafruit_MPL3115A2 baro = Adafruit_MPL3115A2();
-//---------------------Adafruit Ultimate GPS: ---------------
-#include <Adafruit_GPS.h>
-#include <SoftwareSerial.h>
-
-#define GPSSerial Serial1 /// Serial1 =(gpsTX to pin19, GpsRX to pin18), serial2 = rx-17,tx-16,serial3 = rx-15,tx-14
-
-// Connect to the GPS on the hardware port
-Adafruit_GPS GPS(&GPSSerial);
+// ==================== 2. GPS:===========================
 
 
-// Connect the GPS Power pin to 5V
-// Connect the GPS Ground pin to ground
-// Connect the GPS TX (transmit) pin to Digital 8
-// Connect the GPS RX (receive) pin to Digital 7
-//SoftwareSerial mySerial(4, 3);
-
-//Adafruit_GPS GPS(&mySerial);
-// Set GPSECHO to 'false' to turn off echoing the GPS data to the Serial console
-// Set to 'true' if you want to debug and listen to the raw GPS sentences (seeing GPS data sent to arduino, and the GPS data arduino received from the GPS) 
+ /*
+   ============================= NOTES ON GPS Protocols:===================
+   
+  a.  On NMEA protocols:
+ https://www.gpsinformation.org/dale/nmea.htm
+ https://en.wikipedia.org/wiki/NMEA_0183#:~:text=The%20NMEA%200183%20standard%20uses,%22listeners%22%20at%20a%20time.&text=The%20NMEA%20standard%20is%20proprietary,NMEA)%20as%20of%20November%202017.
+b.  On geometric DOP(Dilution of Precision): https://en.wikipedia.org/wiki/Dilution_of_precision_(navigation)
  
-#define GPSECHO  false
-/* --------------------for LOCUS datlogging:
- *  // this keeps track of whether we're using the interrupt
-// off by default!
-#ifndef ESP8266 // Sadly not on ESP8266
-bool usingInterrupt = false;
-#endif
- *  
- */
+ Uses a specific serial interfacing protocol to communicate with microcontrollers called NMEA0183/NMEA2000.
+ NMEA protocol consists of having 5 letters before the numerical data which defines the sentence: the 1st  two letters are GP, followed by 3 letters which indicate a specific sentence.
+ Common Protocol fields are:
+o GPGSA: lists the #satellites used for determining a fix position and gives a geometric DOP fix(Dilution of Precision; specifies the error propagation due to satellite geometry and positional measurement precision) ; uses 12 spaces for satellite numbers.  
+o GPGSV: tells one about the satellites in view that it might be able to locate based on its viewing mask and almanac data; also tells one about the signal strength (SNR;signal to noise ratio);can only provide data to up to 4 satellites. 
+o GPRMC: NMEA has its own version of essential gps pvt (position, velocity, time) data. It is called RMC, The Recommended Minimum
+o GPGGA: essentially fix data which provides 3D location and its accuracy. 
+*/ 
+
+//#include <TinyGPS++.h>
+
+#define GPS Serial2 //(serial2= TX-,RX-7)
+#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
+#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
+#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
+
+int pos;
+int stringplace = 0;
+float GPS_latitude,GPS_longitude;
+
+String nmea[15];
+String labels[12] {"Time:\t", "Status:\t", "Latitude:\t", "Hemisphere:\t", "Longitude:\t", "Hemisphere:\t", "Speed:\t", "Track Angle:\t", "Date:\t"};
 
 
-//---------------MPU-AXL377------------------------------
+//uint32_t timer = millis();
+
+//=================== 3. ADXL377=============================
+
 // Make sure these two variables are correct for your setup
 int scale = 200; // 3 (±3g) for ADXL337, 200 (±200g) for ADXL377
 float micro_voltage = 5.0; // 5 if using a 5V microcontroller such as the Arduino Uno/MEGA, 3.3 if using a 3.3V microcontroller(teensy), this affects the interpretation of the sensor data
-//--------------------------------------------------------
 float AccelRaw_MAX,AccelRaw_zerog; 
 
 
 unsigned int sumX,sumY,sumZ=0;// unsigned int, otherwise last 7 digits makes sum <0 , also sum should never be 0 w/ raw values
 
 
-int i,Maxcount=400;
+int i,Maxcount=200;
 float AvgRawAccelx,AvgRawAccely,AvgRawAccelz;
 float deviationX,Deviation,DeviationX,SumDeviationX;
 float deviationY,deviationZ,DeviationY,DeviationZ,SumDeviationY,SumDeviationZ;
@@ -96,7 +125,8 @@ float Min_rawY=512,Max_rawY=512,Min_rawZ=512,Max_rawZ=512,Min_rawX=512,Max_rawX=
     float accelXcount,Xaccel=0;
     int count=0;
 unsigned int RawArray_X[200],RawArray_Y[200], RawArray_Z[200];
-//--------------------------------------------------------
+//==========================================================================
+
 
 
 void setup() {
@@ -110,13 +140,22 @@ void setup() {
    //analogReference(EXTERNAL); // use if power source isnt 3.3 or 5v--------?
   Serial.begin(115200); // bmp280=9600 baud rate, MPU-AXL377 = 115200 baud rate
  bmp.begin(9600);
-  // bitClear(ADCSRA,ADPS0); 
-  //bitSet(ADCSRA,ADPS1); 
- // bitClear(ADCSRA,ADPS2);
 
 
- // ===============-sd-card reader code:==================
+ // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
+  GPS.begin(9600);
 
+  Serial.println(F("Send byte to start data processing"));
+  while(Serial.available()==0);//doesnt do anything until detects buffer in serial ports
+// =============== APPLY PMTK COMMANDS: ===============
+/* Serial.write is for sending BIN data, doesnt work with Serial.print but 
+Serial.printf(formatted string, and in standard(stdio.h) lib & doesnt specify new line automatically) is for sending strings/chars
+ */
+ 
+  GPS.printf(PMTK_SET_NMEA_UPDATERATE_1HZ);
+  GPS.flush();
+
+ 
   /*
    ============================= NOTES ON GPS Protocols:===================
    
@@ -136,7 +175,7 @@ o GPGGA: essentially fix data which provides 3D location and its accuracy.
 
 
  
- //==========barometric sensor:================
+ //========== BMP280:================
  
 
 
@@ -148,7 +187,6 @@ o GPGGA: essentially fix data which provides 3D location and its accuracy.
                   Adafruit_BMP280::FILTER_X16,      //Filtering. 
                   Adafruit_BMP280::STANDBY_MS_500); // Standby time. 
 
- //bmp280: bmp_temp->printSensorDetails();
  if (!bmp.begin()) {
     Serial.println(F("Could not find a valid BMP280 sensor, check wiring!"));
     while (1);
@@ -158,20 +196,20 @@ o GPGGA: essentially fix data which provides 3D location and its accuracy.
             // -------------Assigning microcontroller type:-------------
  if (micro_voltage = 5.0)
 {
-  AccelRaw_MAX = 675;
+  AccelRaw_MAX = 1024;
   AccelRaw_zerog = AccelRaw_MAX/2;
   
 }
 else if (micro_voltage = 3.3)
 {
-  AccelRaw_MAX = 1023;
+  AccelRaw_MAX = 675;
   AccelRaw_zerog = AccelRaw_MAX/2; 
 
 }
 //--------------Calibrating: --------------
-unsigned int rawX = analogRead(A0);
-unsigned int rawY = analogRead(A1);
-unsigned int  rawZ = analogRead(A2);
+unsigned int rawX = analogRead(A8);
+unsigned int rawY = analogRead(A7);
+unsigned int  rawZ = analogRead(A9);
 while(count<=Maxcount)
 {
 
@@ -330,32 +368,6 @@ delay(100);
   
  //==================GPS:==================
  
-  // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
-  
-  GPS.begin(9600);
-
-  
-  // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
-  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-
-  
-  // uncomment this line to turn on only the "minimum recommended" data
-  //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  // For parsing data, we don't suggest using anything but either RMC only or RMC+GGA since
-  // the parser doesn't care about other sentences at this time
-
-  // Set the update rate
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);   // 1 Hz update rate
-  // For the parsing code to work nicely and have time to sort thru the data, and
-  // print it out we don't suggest using anything higher than 1 Hz
-
-  // Request updates on antenna status, comment out to keep quiet
-  //GPS.sendCommand(PGCMD_ANTENNA);
-// Ask for firmware version
-  //GPSSerial.println(PMTK_Q_RELEASE); // GPSSerial for MEGA,mySerial for uno
-
- 
-  //delay(5);
 
 }
 
@@ -366,33 +378,62 @@ void loop() {
     
     //===========================GPS:=======================
   
+  //===========================GPS:=======================
   // read data from the GPS in the 'main loop'
+    char debug = 'Y';
+    if(debug=='Y')
+      {
+             Serial.println("GPS DEBUGGING INITIATED: SEEING NMEA CODES"); 
+
+      }
   while (GPS.available()>0)
   { 
-  char c = GPS.read();
+     char c = GPS.read();
+
+  // debugging to see NMEA codes:
+    if(debug== 'Y')
+      {
      Serial.write(c);
-       Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
-
-
-  
+     Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
+     
+      } 
   }
-     if (GPS.fix) {
-      Serial.println(" ");
-      Serial.println(F("GPS FIX"));
+  
 
+  if (GPS.find("$GPRMC,")) {
+      String tempMsg = GPS.readStringUntil('\n');
+      for (int i = 0; i < tempMsg.length(); i++) {
+        if (tempMsg.substring(i, i + 1) == ",") {// if char in string=',' from i to i+1 position:
+          nmea[pos] = tempMsg.substring(stringplace, i); 
+          stringplace = i + 1; //stringplace is used to get all characters within two "," thus used as another counter
+          pos++;
+        }
+        if (i == tempMsg.length() - 1) {
+          nmea[pos] = tempMsg.substring(stringplace, i);
+        }
+      }
+      
+      // ===Add to check if data = valid so if GPRMC contains "A":===
+      
+      //==============================================================
+      
+      GPS_latitude = nmea[2].toFloat();
+      GPS_longitude = nmea[4].toFloat();
+      
+      Serial.print(labels[2]);
+      Serial.println(GPS_latitude);
+      
+      Serial.print(labels[4]);
+      Serial.println(GPS_longitude);
+          
     }
-  Serial.println(" ");
-  
-if (GPS.newNMEAreceived())
-{
-if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-  {
-  GPS.parse(GPS.lastNMEA()); 
-    Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
- 
-  //Serial.println(GPS.lastNMEA());
-  }
-}
+    
+  else {
+      Serial.println("GPRMC NMEA CODE NOT DETECTED!");
+      
+    }
+    stringplace = 0;
+    pos = 0;
 
 
   // =============Applying the encoder:===============
@@ -409,10 +450,9 @@ if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag t
    Serial.print(F(" GPS lat:  "));
       //temp = bmp.readTemperature();
    // Serial.print(temp);
-        Serial.print(GPS.latitude);
-        Serial.print(GPS.lat);
+        Serial.print(GPS_latitude);
   Serial.print(F(" = "));
-  encode(GPS.latitude, 0x01, t, encGPS_lat);
+  encode(GPS_latitude, 0x01, t, encGPS_lat);
    for (i=0;i<8;i++)
   {
     Serial.print(encGPS_lat[i],HEX);
@@ -420,22 +460,16 @@ if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag t
   Serial.println(" ");
  Serial.print(F(" GPS long:  "));
    
-        Serial.print(GPS.longitude);
-        Serial.print(GPS.lon);
+        Serial.print(GPS_longitude);
   Serial.print(F(" = "));
-  encode(GPS.longitude, 0x02, t, encGPS_long);
+  encode(GPS_longitude, 0x02, t, encGPS_long);
    for (i=0;i<8;i++)
   {
     Serial.print(encGPS_long[i],HEX);
   }
 
 
-   Serial.println(" ");
-Serial.print(F("GPS #satillites and angle respectfully are:   "));
 
-Serial.print(GPS.satellites);
-Serial.print(",     ");
-Serial.println(GPS.angle);
 
 //=========================== ADXL377 accelerometer:========================
 
@@ -651,20 +685,49 @@ AvgRawAccelz = sumZ / count;
   Serial.println();
 
 
-// printing the encoder values, bit by bit: 
+//===================WRITING TO SERIAL FOR float DATA TRANSMISSION:============================
+
+/*  
+ //-------GPS------
  
+Serial.write(*encGPS_lat);
+Serial.write(*encGPS_long);
+
+// ---- Accelerometer-----
+
+Serial.write(*encAccelX);
+Serial.write(*encAccelY);
+Serial.write(*encAccelZ);
+
+// ------Barometer------
+
+Serial.write(*encAlt);
+Serial.write(*encAccelTemp);
+Serial.write(*encPress);
+
+*/ 
  
- 
-// MPU gyro:
+
 
   
         t++;
 delay(500);// for MPU-AXL377: Minimum delay of 2 milliseconds between sensor reads (500 Hz)
-//}
+
 
 }
 //==================================FUNCTIONS:=================================
 
+//-----------from last years code:------------ 
+void Float2Byte(float f) { // Converts floats to bytes and writes them to serial
+  byte * b = (byte *) &f; // pointer b points to f address (after it converts to byte) , then b is assigned to f data in byte form  
+  //  Serial.print("f:"); // data type
+  Serial.write(b[0]);
+  Serial.write(b[1]);
+  Serial.write(b[2]);
+  Serial.write(b[3]);
+
+  
+}
 // FOR MPU-AXL377: arduino map function 
 //Converts rawAccel to volts or rawAccel to scaledAccel:
 //from:https://ez.analog.com/mems/f/q-a/89030/how-to-calibrate-accelerometer-adxl377?ReplySortBy=CreatedDate&ReplySortOrder=Ascending
@@ -694,12 +757,10 @@ float AVG_Analog(float axisPin,int sampleSize)
  
 }
 
-// readAltitude is ReadAltitude( ijust copied and pasted it to look at it easier)==> this makes it so that the alt header is equal to the press header(reducing #headers needed):
-
-float ReadAltitude(float seaLevelhPa) {
-  float altitude;
-  float pressure = bmp.readPressure(); // in Si units for Pascal
-  pressure /= 100;
-  altitude = 44330 * (1.0 - pow(pressure / seaLevelhPa, 0.1903));
-  return altitude;
+//Filters Data through a low pass filter. Use "alpha" to adjust filter strength.
+float LowPassFilter(float OldVal, float NewRawVal, float alpha)
+{
+  float ProcessedVal;
+  ProcessedVal = alpha * OldVal + (NewRawVal) * (1 - alpha);
+  return ProcessedVal;
 }

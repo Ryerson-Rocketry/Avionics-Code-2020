@@ -90,9 +90,9 @@ else if (AccelPin_MaxVoltage == 5.0)
 
 while(count<=Maxcount)
 {
-unsigned int rawX = analogRead(A0);
-unsigned int rawY = analogRead(A1);
-unsigned int  rawZ = analogRead(A2);   
+unsigned int rawX = analogRead(A8);
+unsigned int rawY = analogRead(A7);
+unsigned int  rawZ = analogRead(A9);   
   sumX += rawX;
   sumY += rawY;
   sumZ += rawZ;

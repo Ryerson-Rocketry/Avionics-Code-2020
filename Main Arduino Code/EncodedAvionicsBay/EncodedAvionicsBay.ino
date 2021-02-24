@@ -1,6 +1,5 @@
 // NOTE: '-----?' = check/look further into
 
-// hardware serial is for MEGA (USED UNO) so set up may be slightly different
 
 #include <encoder_rrc_v2_4.h>
 
@@ -110,13 +109,13 @@ float micro_voltage = 5.0; // 5 if using a 5V microcontroller such as the Arduin
 float AccelRaw_MAX, AccelRaw_zerog;
 
 
-unsigned int sumX, sumY, sumZ = 0; // unsigned int, otherwise last 7 digits makes sum <0 , also sum should never be 0 w/ raw values
+unsigned int sumX, sumY, sumZ = 0; // unsigned int, otherwise last 7 digits makes sum <0 , also sum should never be< 0 w/ raw values
 
 
 int i, Maxcount = 200;
 float AvgRawAccelx, AvgRawAccely, AvgRawAccelz;
-float deviationX, Deviation, DeviationX, SumDeviationX;
-float deviationY, deviationZ, DeviationY, DeviationZ, SumDeviationY, SumDeviationZ;
+float deviationX, deviationY, deviationZ, Deviation, DeviationX , DeviationY, DeviationZ, SumDeviationX, SumDeviationY, SumDeviationZ;
+
 float Min_rawY = 512, Max_rawY = 512, Min_rawZ = 512, Max_rawZ = 512, Min_rawX = 512, Max_rawX = 512;
 
 
@@ -125,9 +124,10 @@ float adjusted_gAccel_X, adjusted_gAccel_Y, adjusted_gAccel_Z;
 float accelXcount, Xaccel = 0;
 int count = 0;
 unsigned int RawArray_X[200], RawArray_Y[200], RawArray_Z[200];
+
 //============================= Shared Global Variables(Global Variables used by all sensors): =============================================
 
-char debug = 'N';// 'Y' if debugging and printing all testing values to serial monitor
+char debug = 'Y';// 'Y' if debugging and printing all testing values to serial monitor
 int t = 0;
 //==========================================================================================================================================
 
@@ -216,6 +216,7 @@ void setup() {
   unsigned int rawX = analogRead(A8);
   unsigned int rawY = analogRead(A7);
   unsigned int  rawZ = analogRead(A9);
+
   while (count <= Maxcount)
   {
 
@@ -354,13 +355,14 @@ void setup() {
     deviationZ += rawZ - mew1;
     //Serial.println(deviationX);
 
-    // AVG. DEVIATION:
-    DeviationX = deviationX / count; //for accelX
-    DeviationY = deviationY / count;
-    DeviationZ = deviationZ / count;
+
     count = count + 1;
     delay(100);
   }
+  // AVG. DEVIATION:
+  DeviationX = deviationX / count; //for accelX
+  DeviationY = deviationY / count;
+  DeviationZ = deviationZ / count;
   // Get raw accelerometer data for each axis
   if (debug == 'Y')
   {
@@ -396,10 +398,7 @@ void loop() {
 
 
   //===========================GPS:=======================
-  if (debug == 'Y')
-  {
-    Serial.println(F("****************** GPS: ********************"));
-  }
+
   // read data from the GPS in the 'main loop'
   char GPSdebug = 'N';
   if (GPSdebug == 'Y')
@@ -440,14 +439,8 @@ void loop() {
 
     GPS_latitude = nmea[2].toFloat();
     GPS_longitude = nmea[4].toFloat();
-    if ( GPSdebug == 'Y')
-    {
-      Serial.print(labels[2]);
-      Serial.println(GPS_latitude);
 
-      Serial.print(labels[4]);
-      Serial.println(GPS_longitude);
-    }
+
 
   }
 
@@ -459,7 +452,85 @@ void loop() {
   pos = 0;
 
 
+
+
+
+
+  //=========================== ADXL377 accelerometer:========================
+  unsigned int rawX = analogRead(A8);
+  unsigned int rawY = analogRead(A7);
+  unsigned int  rawZ = analogRead(A9);
+
+  float AVG_AccelDeviation[3] = {DeviationX , DeviationY, DeviationZ}; // note make sure to run before launch so that AVG_AccelDeviation could be calc
+  /* ---------- methods for AVG_Accel input:------
+
+    1. use const. obtained from previous calcs for now
+    2. set to {AvgRawAccelx ,AvgRawAccely,AvgRawAccelz} or set to set to {DeviationX,DeviationY,DeviationZ}
+    note make sure to run before launch so that avgRawAccel could be calc
+  */
+  float AccelAdjustment[3] ;
+  unsigned int rawAccelArray[3] = {rawX, rawY, rawZ};
+  int ii;
+
+
+
+
+
+  if (rawX < Min_rawX)
+  {
+    Min_rawX = rawX;
+  }
+  if (rawX > Max_rawX)
+  {
+    Max_rawX = rawX;
+  }
+  if (rawY < Min_rawY)
+  {
+    Min_rawY = rawY;
+  }
+  if (rawY > Max_rawY)
+  {
+    Max_rawY = rawY;
+  }
+  if (rawZ < Min_rawZ)
+  {
+    Min_rawZ = rawZ;
+  }
+  if (rawZ > Max_rawZ)
+  {
+    Max_rawZ = rawZ;
+  }
+
+
+
+
+  AvgRawAccelx = sumX / count;
+
+  AvgRawAccely = sumY / count;
+
+
+  AvgRawAccelz = sumZ / count;
+
+
+  for (ii = 0; ii < sizeof(AVG_AccelDeviation) / 4; ii++) // sizeof function shows size in #of bytes
+  {
+
+
+
+
+    AccelAdjustment[ii] = rawAccelArray[ii] - AVG_AccelDeviation[ii]; //-(AVG_Accel[ii]-AccelRaw_zerog);// adjustment set up so that if avg accel is >1 than  subtract and viceversa
+
+  }
+
+
+
+
+  adjusted_gAccel_X =   map_float(AccelAdjustment[0], 0, AccelRaw_MAX, -scale, scale);
+  adjusted_gAccel_Y =   map_float(AccelAdjustment[1], 0, AccelRaw_MAX, -scale, scale);
+  adjusted_gAccel_Z =   map_float(AccelAdjustment[2], 0, AccelRaw_MAX, -scale, scale);//template==> map_float(value,minOldRange,maxOldRange,minNewRange,MaxNewRange)
+  //Serial.println("");
   // =============Applying the encoder:===============
+
 
   int i;
   uint32_t int_data;
@@ -467,14 +538,30 @@ void loop() {
 
 
 
-  //Adafruit GPS:
   encode(GPS_latitude, 0x01, t, encGPS_lat);
+  encode(GPS_longitude, 0x02, t, encGPS_long);
+  encode(adjusted_gAccel_X, 0x03, t, encAccelX);
+  encode(adjusted_gAccel_Y, 0x04, t, encAccelY);
+  encode(adjusted_gAccel_Z, 0x05, t, encAccelZ);
+
+  encode(bmp.readTemperature(), 0x06, t, encTemp);
+  encode(bmp.readPressure(), 0x07, t, encPress);
+  encode(bmp.readAltitude(), 0x00 , t, encAlt);
+
+  //======Printing values===============================
   if (debug == 'Y')
   {
+    //=========== GPS=====================
+    Serial.println(F("\n****************** GPS: ********************"));
+    Serial.print(labels[2]);
+    Serial.println(GPS_latitude);
+
+    Serial.print(labels[4]);
+    Serial.println(GPS_longitude);
+
 
     Serial.print(F(" GPS lat:  "));
-    //temp = bmp.readTemperature();
-    // Serial.print(temp);
+
     Serial.print(GPS_latitude);
     Serial.print(F(" = "));
     for (i = 0; i < 8; i++)
@@ -482,11 +569,9 @@ void loop() {
       Serial.print(encGPS_lat[i], HEX);
     }
     Serial.println(" ");
-  }
 
-  encode(GPS_longitude, 0x02, t, encGPS_long);
-  if (debug == 'Y')
-  {
+
+
     Serial.print(F(" GPS long:  "));
 
     Serial.print(GPS_longitude);
@@ -495,48 +580,11 @@ void loop() {
     {
       Serial.print(encGPS_long[i], HEX);
     }
-  }
 
 
 
-
-  //=========================== ADXL377 accelerometer:========================
-
-  unsigned int rawX = analogRead(A0);
-  unsigned int rawY = analogRead(A1);
-  unsigned int  rawZ = analogRead(A2);
-
-  if (debug == 'Y')
-  {
+    // ADXL377:
     Serial.println(F("\n****************** ADXL377: ********************"));
-
-
-
-
-    if (rawX < Min_rawX)
-    {
-      Min_rawX = rawX;
-    }
-    if (rawX > Max_rawX)
-    {
-      Max_rawX = rawX;
-    }
-    if (rawY < Min_rawY)
-    {
-      Min_rawY = rawY;
-    }
-    if (rawY > Max_rawY)
-    {
-      Max_rawY = rawY;
-    }
-    if (rawZ < Min_rawZ)
-    {
-      Min_rawZ = rawZ;
-    }
-    if (rawZ > Max_rawZ)
-    {
-      Max_rawZ = rawZ;
-    }
 
     Serial.print(F("Raw Accel at 0g is:"));
     Serial.println(AccelRaw_zerog);
@@ -572,16 +620,6 @@ void loop() {
     */
 
     // rawAccel: currently using avg = 346,345,345 (x,y,z respectively)
-
-  }
-  AvgRawAccelx = sumX / count;
-
-  AvgRawAccely = sumY / count;
-
-
-  AvgRawAccelz = sumZ / count;
-  if (debug == 'Y')
-  {
     Serial.print(F("Average raw Accel(X,Y,Z) respectively are:" ));
     Serial.print(AvgRawAccelx);
 
@@ -590,16 +628,7 @@ void loop() {
 
     Serial.print(", " );
     Serial.println(AvgRawAccelz);
-  }
-  float AVG_AccelDeviation[3] = {DeviationX , DeviationY, DeviationZ}; // note make sure to run before launch so that AVG_AccelDeviation could be calc
-  /* ---------- methods for AVG_Accel input:------
 
-    1. use const. obtained from previous calcs for now
-    2. set to {AvgRawAccelx ,AvgRawAccely,AvgRawAccelz} or set to set to {DeviationX,DeviationY,DeviationZ}
-    note make sure to run before launch so that avgRawAccel could be calc
-  */
-  if (debug == 'Y')
-  {
     Serial.print("The size of the avg accel array (in bytes) is:");
 
     Serial.println(sizeof(AVG_AccelDeviation));
@@ -613,39 +642,13 @@ void loop() {
     Serial.print(DeviationY);
     Serial.print(", " );
     Serial.println(DeviationZ);
-  }
-  float AccelAdjustment[3] ;
-  unsigned int rawAccelArray[3] = {rawX, rawY, rawZ};
-  int ii;
-  for (ii = 0; ii < sizeof(AVG_AccelDeviation) / 4; ii++) // sizeof function shows size in #of bytes
-  {
-
-
-
-
-    AccelAdjustment[ii] = rawAccelArray[ii] - AVG_AccelDeviation[ii]; //-(AVG_Accel[ii]-AccelRaw_zerog);// adjustment set up so that if avg accel is >1 than  subtract and viceversa
-
-  }
-  if (debug == 'Y')
-  {
     Serial.print(F("The accel X.Y,Z raw adjustments are:"));
     for (ii = 0; ii < sizeof(AccelAdjustment) / 4; ii++)
     {
       Serial.print(AccelAdjustment[ii]);
       Serial.print(",  ");
     }
-  }
 
-  adjusted_gAccel_X =   map_float(AccelAdjustment[0], 0, AccelRaw_MAX, -scale, scale);
-  adjusted_gAccel_Y =   map_float(AccelAdjustment[1], 0, AccelRaw_MAX, -scale, scale);
-  adjusted_gAccel_Z =   map_float(AccelAdjustment[2], 0, AccelRaw_MAX, -scale, scale);//template==> map_float(value,minOldRange,maxOldRange,minNewRange,MaxNewRange)
-  //Serial.println("");
-  // =============Applying the encoder:===============
-
-  // ADXL377:
-  encode(adjusted_gAccel_X, 0x03, t, encAccelX);
-  if (debug == 'Y')
-  {
     Serial.print(F("\n adjusted X acceleration(g):  "));
     Serial.print(adjusted_gAccel_X);
     Serial.print(" = ");
@@ -653,10 +656,8 @@ void loop() {
     {
       Serial.print(encAccelX[i], HEX);
     }
-  }
-  encode(adjusted_gAccel_Y, 0x04, t, encAccelY);
-  if (debug == 'Y')
-  {
+
+
     Serial.println(F(""));
     Serial.print(F("adjusted Y acceleration(g):  "));
     Serial.print(adjusted_gAccel_Y);
@@ -666,10 +667,8 @@ void loop() {
       Serial.print(encAccelY[i], HEX);
     }
     Serial.println(F(""));
-  }
-  encode(adjusted_gAccel_Z, 0x05, t, encAccelZ);
-  if (debug == 'Y')
-  {
+
+
     Serial.print(F("adjusted Z acceleration(g):  "));
     Serial.print(adjusted_gAccel_Z);
     Serial.print(F(" = "));
@@ -679,15 +678,13 @@ void loop() {
     }
     Serial.println(" ");
 
-  }
 
 
 
 
-  //bmp280 temperature:
-  encode(bmp.readTemperature(), 0x06, t, encTemp);
-  if (debug == 'Y')
-  {
+
+    //bmp280 temperature:
+
     Serial.println(F("****************** BMP280: ********************"));
     Serial.print(F("bmp temp(C):  "));
     //temp = bmp.readTemperature();
@@ -699,12 +696,10 @@ void loop() {
       Serial.print(encTemp[i], HEX);
     }
     Serial.println();
-  }
 
-  // bmp pressure;
-  encode(bmp.readPressure(), 0x07, t, encPress);
-  if (debug == 'Y')
-  {
+
+    // bmp pressure;
+
     Serial.print(F("bmp pressure(Pa):  "));
     Serial.print(bmp.readPressure());
     Serial.print(F(" = "));
@@ -713,11 +708,9 @@ void loop() {
       Serial.print(encPress[i], HEX);
     }
     Serial.println();
-  }
-  //bmp altitude:
-  encode(bmp.readAltitude(), 0x00 , t, encAlt);
-  if (debug == 'Y')
-  {
+
+    //bmp altitude:
+
     Serial.print(F("bmp alt(m):  "));
     Serial.print(bmp.readAltitude());// 1013.25 is SL pressure in hPa
     Serial.print(F(" = "));
@@ -732,8 +725,13 @@ void loop() {
     }
 
 
-    Serial.println();
+
+    Serial.print("\n t is:\t");
+    Serial.println(t);
   }
+  t++;
+
+
 
   //===================WRITING TO SERIAL FOR float DATA TRANSMISSION:============================
 
@@ -762,7 +760,7 @@ void loop() {
 
     char debug2 = 'N'; // debugg to see if serial.write worked
     if (debug2 == 'Y')
-    { 
+    {
       Serial.println(*encPress, DEC);
 
       while (Serial.available() > 0)
@@ -779,12 +777,7 @@ void loop() {
 
 
 
-  t++;
-  if (debug == 'Y')
-  {
-    Serial.print("t is:\t");
-    Serial.println(t);
-  }
+
   delay(500);
 
 }
@@ -812,7 +805,6 @@ float map_float(float x, float minInput, float maxInput, float minOut, float max
   return conv;
 }
 
-// readAltitude is ReadAltitude( ijust copied and pasted it to look at it easier)==> this makes it so that the alt header is equal to the press header(reducing #headers needed):
 
 
 // Read "sampleSize" samples and report the average

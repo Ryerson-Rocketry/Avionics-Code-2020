@@ -5,6 +5,7 @@
 
 
 #include <Adafruit_BMP280.h>
+//#include <TinyGPS++.h>
 
 
 
@@ -14,6 +15,8 @@
 
 #include <Wire.h>
 #include <SPI.h>
+#include <SD.h>
+
 
 // ***************************** DEFINING GLOBAL VARIABLES:****************************************
 
@@ -84,7 +87,6 @@ Adafruit_Sensor *bmp_pressure = bmp.getPressureSensor();
   o GPGGA: essentially fix data which provides 3D location and its accuracy.
 */
 
-//#include <TinyGPS++.h>
 
 #define GPS Serial2 //(serial2= TX-,RX-7)
 #define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
@@ -102,17 +104,18 @@ String labels[12] {"Time:\t", "Status:\t", "Latitude:\t", "Hemisphere:\t", "Long
 //uint32_t timer = millis();
 
 //=================== 3. ADXL377=============================
+//#define Maxcount 200
 
 // Make sure these two variables are correct for your setup
 int scale = 200; // 3 (±3g) for ADXL337, 200 (±200g) for ADXL377
-float micro_voltage = 5.0; // 5 if using a 5V microcontroller such as the Arduino Uno/MEGA, 3.3 if using a 3.3V microcontroller(teensy), this affects the interpretation of the sensor data
+float accel_volt = 5.0; // assigning accel. input voltage type
 float AccelRaw_MAX, AccelRaw_zerog;
 
 
 unsigned int sumX, sumY, sumZ = 0; // unsigned int, otherwise last 7 digits makes sum <0 , also sum should never be< 0 w/ raw values
 
 
-int i, Maxcount = 200;
+int i,  Maxcount =200, count = 0;
 float AvgRawAccelx, AvgRawAccely, AvgRawAccelz;
 float deviationX, deviationY, deviationZ, Deviation, DeviationX , DeviationY, DeviationZ, SumDeviationX, SumDeviationY, SumDeviationZ;
 
@@ -122,9 +125,21 @@ float Min_rawY = 512, Max_rawY = 512, Min_rawZ = 512, Max_rawZ = 512, Min_rawX =
 //METHOD: using statistics equations:
 float adjusted_gAccel_X, adjusted_gAccel_Y, adjusted_gAccel_Z;
 float accelXcount, Xaccel = 0;
-int count = 0;
+char debug_accelDeviation = 'Y';  // debug for calc. average accel. deviation in setup function while loop
 unsigned int RawArray_X[200], RawArray_Y[200], RawArray_Z[200];
 
+//=================== 4.SD card==================================================
+// --------sd variables to check sd info. (memory left, directory, make,etc.):-------
+Sd2Card card;
+SdVolume Volume;
+SdFile root;
+//------------------------------------------------------------------------------------
+int sd_CSpin = BUILTIN_SDCARD;
+char debug_SD = 'Y';
+File dataFile;
+
+//unsigned long timer = millis(); // uses millis function for timing
+//int sdWrite_interval = 0; // sets interval time in count
 //============================= Shared Global Variables(Global Variables used by all sensors): =============================================
 
 char debug = 'Y';// 'Y' if debugging and printing all testing values to serial monitor
@@ -151,8 +166,9 @@ void setup() {
   while (Serial.available() == 0)
   { //doesnt do anything until detects buffer in serial ports
     Serial.println(F("Send byte to start data processing"));
-    delay(5000);
+    delay(5000); // repeat message every 5 seconds until a byte is sent
   }
+
   // =============== APPLY PMTK COMMANDS: ===============
   /* Serial.write is for sending BIN data, doesnt work with Serial.print but
     Serial.printf(formatted string, and in standard(stdio.h) lib & doesnt specify new line automatically) is for sending strings/chars
@@ -197,16 +213,69 @@ void setup() {
     Serial.println(F("Could not find a valid BMP280 sensor, check wiring!"));
     while (1);
   }
+  // initialize SD card:
+
+
+  // see if the card is present and can be initialized:
+  if (!SD.begin(sd_CSpin)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    while (1);
+  }
+  else
+  {
+    Serial.println("card initialized.");
+  }
+
+  if (SD.exists("data.txt")) {
+    Serial.println("data.txt exists.");
+    dataFile = SD.open("data.txt");
+
+    // read from the file until there's nothing else in it:
+    if (debug_SD == 'Y') // only reads dataFile and writes to serial if debugging
+    {
+      Serial.println("#################### PRINTING SD card data from data.txt ###########################");
+      while (dataFile.available()) {
+        Serial.write(dataFile.read());
+        delay(10);
+      }
+      Serial.println("#####################################################################################");
+
+    }
+    //  close the file then delete it :
+    dataFile.close();
+    SD.remove("data.txt");
+  }
+
+
+  else if (!SD.exists("data.txt")) {
+    Serial.println("data.txt doesn't exist.");
+  }
+  delay(50);
+
+  dataFile = SD.open("data.txt", FILE_WRITE);
+  if (!dataFile) {
+    Serial.println("error opening datalog.txt");
+    while (1) ;
+  }
+  dataFile.println("count(t) at which data was written to file ,Latitude,Longitude,"
+                   "AccelX (g),AccelY,AccelZ,"
+                   "rawAccel X ,rawAccel Y,rawAccel Z,"
+                   "Pressure (Pa),Temp (C), Alt (m)"); // header for txt file
+
+  dataFile.close();
+  delay(50);
+
   // ==============ADXL377 accelerometer:===================
 
-  // -------------Assigning microcontroller type:-------------
-  if (micro_voltage = 5.0)
+  // -------------Assigning sensor type:-------------
+  if (accel_volt = 5.0)
   {
     AccelRaw_MAX = 1024;
     AccelRaw_zerog = AccelRaw_MAX / 2;
 
   }
-  else if (micro_voltage = 3.3)
+  else if (accel_volt = 3.3)
   {
     AccelRaw_MAX = 675;
     AccelRaw_zerog = AccelRaw_MAX / 2;
@@ -227,7 +296,7 @@ void setup() {
     RawArray_X[count] = sumX;
     RawArray_Y[count] = sumY;
     RawArray_Z[count] = sumZ;
-    if (debug == 'Y')
+    if (debug_accelDeviation == 'Y')
     {
       Serial.print(F("At count: ")); Serial.print(count);
       Serial.print(F("  The raw accel sums(X,Y,Z) are:"));
@@ -364,7 +433,7 @@ void setup() {
   DeviationY = deviationY / count;
   DeviationZ = deviationZ / count;
   // Get raw accelerometer data for each axis
-  if (debug == 'Y')
+  if (debug_accelDeviation == 'Y')
   {
     Serial.println("");
     Serial.println(rawX);
@@ -553,12 +622,6 @@ void loop() {
   {
     //=========== GPS=====================
     Serial.println(F("\n****************** GPS: ********************"));
-    Serial.print(labels[2]);
-    Serial.println(GPS_latitude);
-
-    Serial.print(labels[4]);
-    Serial.println(GPS_longitude);
-
 
     Serial.print(F(" GPS lat:  "));
 
@@ -729,6 +792,48 @@ void loop() {
     Serial.print("\n t is:\t");
     Serial.println(t);
   }
+  //Serial.println(millis());
+
+  // Serial.println(t%3);
+  //====================== writing to SD card:=================================================
+  if ((t % 8) == 1 ) // prints to file every 8 intervals
+  {
+    //dataFile.print(millis());
+    //dataFile.print(" ||  ");
+    dataFile = SD.open("data.txt", FILE_WRITE);
+    if (!dataFile) {
+      Serial.println("error opening datalog.txt");
+      while (1) ;
+    }
+    dataFile.print(t);
+    dataFile.print(" ,  ");
+
+    dataFile.print(GPS_latitude);
+    dataFile.print(" ,  ");
+    dataFile.print(GPS_longitude);
+    dataFile.print(" ,  ");
+    dataFile.print(adjusted_gAccel_X);
+    dataFile.print(" ,  ");
+    dataFile.print(adjusted_gAccel_Y);
+    dataFile.print(" ,  ");
+    dataFile.print(adjusted_gAccel_Z);
+    dataFile.print(" ,  ");
+    dataFile.print(rawX);
+    dataFile.print(" ,  ");
+    dataFile.print(rawY);
+    dataFile.print(" ,  ");
+    dataFile.print(rawZ);
+    dataFile.print(" ,  ");
+    dataFile.print(bmp.readTemperature());
+    dataFile.print(" ,  ");
+    dataFile.print(bmp.readPressure());
+    dataFile.print(" ,  ");
+    dataFile.print(bmp.readAltitude());
+    dataFile.println();
+    dataFile.close();
+
+  }
+  //===========================================================================================
   t++;
 
 

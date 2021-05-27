@@ -52,6 +52,7 @@ float sensitivity_scaleFactor = 78 * (10 ^ -6); // in g/LSB
 float Min_rawY = 0, Max_rawY = 0, Min_rawZ = 2048, Max_rawZ = -2048, Min_rawX = 0, Max_rawX = 0;
 int i = 0;
 
+
 void setup() {
   Serial.begin(9600);
 
@@ -65,18 +66,15 @@ void setup() {
   Wire1.setSDA(38);
   Wire1.begin(addr_ADXL357Z);
 
-  /*
+ 
     //==================== RESET EVERYTHING(if done see datasheet to double check ==>i believe it deletes some factory set data which is important)=============
-    Wire.beginTransmission(addr_ADXL357Z);
-    Wire.write(register_RESET);
-    Wire.write(0x00);
-    Wire.endTransmission(true);
-    Serial.println(Wire.endTransmission(true));
-  */
+ 
+   I2C_ACCEL(debug, addr_ADXL357Z, register_RESET, 'W', 0x52, 1);
+
 
 
   // =========== shut off temp processing:==============
-  uint8_t powerControl_data[3];
+  uint8_t powerControl_data[1];
   I2C_ACCEL(debug, addr_ADXL357Z, register_POWER_CTL, 'R', 0x00, 1);
 
   while (Wire1.available() > 0)
@@ -95,7 +93,7 @@ void setup() {
 
 
 
-  uint8_t TEMP_ON_OFF = 0x01; // off = 0000 0001, on =  0000 0000
+  const uint8_t TEMP_ON_OFF = 0x01; // off = 0000 0001, on =  0000 0000
 
 
   //     *powerControl_data = (*powerControl_data) | TEMP_ON_OFF;
@@ -104,9 +102,9 @@ void setup() {
 
   Serial.println(TEMP_ON_OFF, BIN);
 
-  Serial.print("new power control data is:\t");
+  //Serial.print("new power control data is:\t");
 
-  Serial.println(*powerControl_data, BIN);
+ // Serial.println(*powerControl_data, BIN);
 
 
 
@@ -181,18 +179,19 @@ void loop() {
     delay(1000);
   */
 
+
 }
 // functions:
 
 int I2C_ACCEL(char debug, uint8_t address, uint8_t Register, char READ_OR_WRITE, uint8_t byte2write, int numbBytes2read)
 {
   Wire1.beginTransmission(address);
-  Wire1.write(Register);
+  Wire1.write((byte)Register);
   if (READ_OR_WRITE == 'W')
   {
-    Wire1.write(byte2write);
+    Wire1.write((byte)byte2write);
+    Wire1.endTransmission();
 
-    Wire1.endTransmission(true);
   }
   else if (READ_OR_WRITE == 'R')
   {

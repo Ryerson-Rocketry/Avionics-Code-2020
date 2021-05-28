@@ -133,7 +133,7 @@ void setup() {
     Tells the arduino that the reference volt value is not 3.3V or 5V, when using an
     external batt source thats not 3.3 or 5v.
   */
-  //analogReference(EXTERNAL); // use if power source isnt 3.3 or 5v--------?
+  //analogReference(EXTERNAL); // use if power source isnt 3.3 or 5v
   Serial.begin(115200); // bmp280=9600 baud rate, MPU-AXL377 = 115200 baud rate
   bmp.begin(9600);
 
@@ -148,11 +148,8 @@ void setup() {
   }
 
   // =============== APPLY PMTK COMMANDS: ===============
-  /* Serial.write is for sending BIN data, doesnt work with Serial.print but
-    Serial.printf(formatted string, and in standard(stdio.h) lib & doesnt specify new line automatically) is for sending strings/chars
-  */
 
-  GPS.printf(PMTK_SET_NMEA_UPDATERATE_1HZ);
+ // GPS.printf(PMTK_SET_NMEA_UPDATERATE_1HZ);
   GPS.flush();
 
 
@@ -498,17 +495,7 @@ void loop() {
 
 //==================================FUNCTIONS:=================================
 
-//-----------from last years code:------------
-void Float2Byte(float f) { // Converts floats to bytes and writes them to serial
-  byte * b = (byte *) &f; // pointer b points to f address (after it converts to byte) , then b is assigned to f data in byte form
-  //  Serial.print("f:"); // data type
-  Serial.write(b[0]);
-  Serial.write(b[1]);
-  Serial.write(b[2]);
-  Serial.write(b[3]);
 
-
-}
 // FOR MPU-AXL377: arduino map function
 //Converts rawAccel to volts or rawAccel to scaledAccel:
 //from:https://ez.analog.com/mems/f/q-a/89030/how-to-calibrate-accelerometer-adxl377?ReplySortBy=CreatedDate&ReplySortOrder=Ascending

@@ -29,15 +29,26 @@ void loop() {
 
 
 
-  String GPS_message;
+  String GPS_message,GPS_ID;
   GPS.setTimeout(300); // in ms ; waits to read gps serial
   while (GPS.available() > 0)
   {
     GPS.readStringUntil('\n');
+    /*
+  GPS.read();
+  if (GPS.find('$'))
+   {
+    GPS_ID = GPS.readStringUntil(',');
+
+    
+   }
+   */
   }
 
 
-  if ((GPS.find("$GNRMC")) ) {
+ //if ((GPS_ID.substring(2,4)=="RMC")) { 
+ if((GPS.find("$GNRMC"))||( GPS.find("$GPRMC")))
+ {
     GPS_message = GPS.readStringUntil('\n');
     for (int i = 0; i < GPS_message.length(); i++) {
       if (GPS_message.substring(i, i + 1) == ",") {// if char in string=',' create a substring from i to i+1 position:

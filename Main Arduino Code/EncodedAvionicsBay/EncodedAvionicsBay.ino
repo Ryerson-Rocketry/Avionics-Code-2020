@@ -71,21 +71,23 @@ Adafruit_Sensor *bmp_pressure = bmp.getPressureSensor();
   o GPGGA: essentially fix data which provides 3D location and its accuracy.
 */
 
+//#include <Adafruit_PMTK.h>
 
-#define GPS Serial1 //(serial2= TX-,RX-7)
-#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
-#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
-#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
+#define GPS Serial2 // RX, TX
+//#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
+//#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
+//#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
+//#define isGPS_Beitian true // if using ground station "Beitian" gps =true
 
-int pos;
+#define debug_GPS true
+
+int pos = 0;
 int stringplace = 0;
 float GPS_latitude, GPS_longitude;
-
 String nmea[15];
-String labels[12] {"Time:\t", "Status:\t", "Latitude:\t", "Hemisphere:\t", "Longitude:\t", "Hemisphere:\t", "Speed:\t", "Track Angle:\t", "Date:\t"};
+String labels[]={"RMC ID:\t ", "Time:\t ", "Data Validity (A=Y, V=N):\t ", "Latitude:\t ", "NS indicator:\t ", "Longitude:\t ", "EW indicator:\t ", "Speed:\t ", "Course over GND:\t","Date:\t","Mag variation:\t","Mag variation2:\t ","Pos Mode:\t","Nav Status:\t", "Checksum:\t","CR&LF:\t"};// in order of actual nmea code being read
+//char PMTK_commands[55]; // max string length of PMTK command=50 + \r\n ~= 54 char total
 
-
-//uint32_t timer = millis();
 
 //=================== 3. ADXL357Z=============================
 
@@ -246,52 +248,67 @@ void loop() {
     Serial.println("GPS DEBUGGING INITIATED: SEEING NMEA CODES");
 
   }
+  
+
+  String GPS_message,GPS_ID;
+  GPS.setTimeout(300); // in ms ; waits to read gps serial
   while (GPS.available() > 0)
   {
-    char c = GPS.read();
+    GPS.readStringUntil('\n');
+    /*
+  GPS.read();
+  if (GPS.find('$'))
+   {
+    GPS_ID = GPS.readStringUntil(',');
 
-    // debugging to see NMEA codes:
-    if (GPSdebug == 'Y')
-    {
-      Serial.write(c);
-      Serial.flush();//wait until GPS is finished being written to serial then proceed with other data
-
-    }
+    
+   }
+   */
   }
 
-
-  if (GPS.find("$GPRMC,")) {
-    String tempMsg = GPS.readStringUntil('\n');
-    for (int i = 0; i < tempMsg.length(); i++) {
-      if (tempMsg.substring(i, i + 1) == ",") {// if char in string=',' from i to i+1 position:
-        nmea[pos] = tempMsg.substring(stringplace, i);
+ //if ((GPS_ID.substring(2,4)=="RMC")) { 
+ if((GPS.find("$GNRMC"))||( GPS.find("$GPRMC")))
+ {
+    GPS_message = GPS.readStringUntil('\n');
+    for (int i = 0; i < GPS_message.length(); i++) {
+      if (GPS_message.substring(i, i + 1) == ",") {// if char in string=',' create a substring from i to i+1 position:
+        nmea[pos] = GPS_message.substring(stringplace, i);
         stringplace = i + 1; //stringplace is used to get all characters within two "," thus used as another counter
-        pos++;
+        pos++;// indexing for nmea array==> basically index for substring
+        // pos = substring(all characters per substring), i = entire string (all characters in string)
       }
-      if (i == tempMsg.length() - 1) {
-        nmea[pos] = tempMsg.substring(stringplace, i);
+      if (i == GPS_message.length() - 1) {
+        nmea[pos] = GPS_message.substring(stringplace, i);
       }
     }
-
-    // ===Add to check if data = valid (so if GPRMC contains "A"):===
+    // ===add to check if data = valid so if GPRMC contains "A":===
 
     //==============================================================
+    GPS_latitude = (nmea[3].toFloat()) / 100;
+    GPS_longitude = (nmea[5].toFloat()) / 100;
 
-    GPS_latitude = nmea[2].toFloat();
-    GPS_longitude = nmea[4].toFloat();
+    if (debug_GPS == true)
+    {
+      Serial.print(labels[3]);
 
-
+      Serial.print(GPS_latitude);
+     Serial.println(nmea[4]);
+      
+      Serial.print(labels[5]);
+      Serial.print(GPS_longitude);
+      Serial.println(nmea[6]);
+    }
 
   }
-
   else {
-    Serial.println("GPRMC NMEA CODE NOT DETECTED!");
-
+    if (debug_GPS == true)
+    {
+      Serial.print("No GPRMC NMEA code detected");
+    }
   }
+
   stringplace = 0;
   pos = 0;
-
-
 
 
 

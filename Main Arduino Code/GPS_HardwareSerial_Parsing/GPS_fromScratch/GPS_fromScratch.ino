@@ -1,32 +1,26 @@
-#include <Adafruit_PMTK.h>
+//#include <Adafruit_PMTK.h>
 #include <string.h>
 #include <stdio.h>
-#define GPS Serial4 // RX, TX
-#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
-#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
-#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
+
+#define GPS Serial2 // RX, TX
+//#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
+//#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
+//#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
 //#define isGPS_Beitian true // if using ground station "Beitian" gps =true
-//#define debug_GPS false
+
+#define debug_GPS true
 
 int pos = 0;
 int stringplace = 0;
-float velocity;
+float  Latitude, Longitude;
 
 String nmea[15];
-String labels[12] {"Time: ", "Status: ", "Latitude: ", "Hemisphere: ", "Longitude: ", "Hemisphere: ", "Speed: ", "Track Angle: ", "Date: "};
+String labels[]={"RMC ID:\t ", "Time:\t ", "Data Validity (A=Y, V=N):\t ", "Latitude:\t ", "NS indicator:\t ", "Longitude:\t ", "EW indicator:\t ", "Speed:\t ", "Course over GND:\t","Date:\t","Mag variation:\t","Mag variation2:\t ","Pos Mode:\t","Nav Status:\t", "Checksum:\t","CR&LF:\t"};// in order of actual nmea code being read
 //char PMTK_commands[55]; // max string length of PMTK command=50 + \r\n ~= 54 char total
 void setup() {
   Serial.begin(115200);
   GPS.begin(9600);
   // =============== APPLY PMTK COMMANDS: ===============
-  /* Serial.write is for sending BIN data, doesnt work with Serial.print but
-    Serial.printf(formatted string, and in standard(stdio.h) lib & doesnt specify new line automatically) is for sending strings/chars
-  */
-  //strcpy(PMTK_commands,PMTK_SET_NMEA_UPDATE_1HZ);
-  //strcat(PMTK_commands,"\r\n");
-  //GPS.printf(PMTK_commands);
-  //  GPS.printf(PMTK_SET_NMEA_UPDATERATE_1HZ);
-  //GPS.flush();
 
   // ====================================================
 }
@@ -35,18 +29,15 @@ void loop() {
 
 
 
-  //Serial.println("VOID LOOP");
   String GPS_message;
-
+  GPS.setTimeout(300); // in ms ; waits to read gps serial
   while (GPS.available() > 0)
   {
-
-    GPS.read();
+    GPS.readStringUntil('\n');
   }
 
 
-
-  if ((GPS.find("$GPRMC,")) || (GPS.find("$GNRMC,"))) {
+  if ((GPS.find("$GNRMC")) ) {
     GPS_message = GPS.readStringUntil('\n');
     for (int i = 0; i < GPS_message.length(); i++) {
       if (GPS_message.substring(i, i + 1) == ",") {// if char in string=',' create a substring from i to i+1 position:
@@ -62,19 +53,30 @@ void loop() {
     // ===add to check if data = valid so if GPRMC contains "A":===
 
     //==============================================================
+    Latitude = (nmea[3].toFloat()) / 100;
+    Longitude = (nmea[5].toFloat()) / 100;
 
-    //velocity = nmea[6].toFloat()* 0.514444; // knots to m/s conversion
-    Serial.print(labels[2]);
-    Serial.println(nmea[2].toFloat());
+    if (debug_GPS == true)
+    {
+      Serial.print(labels[3]);
+
+      Serial.print(Latitude);
+     Serial.println(nmea[4]);
+      
+      Serial.print(labels[5]);
+      Serial.print(Longitude);
+      Serial.println(nmea[6]);
+    }
+
   }
   else {
-    Serial.print("No GPRMC NMEA code detected");
-
+    if (debug_GPS == true)
+    {
+      Serial.print("No GPRMC NMEA code detected");
+    }
   }
-
 
   stringplace = 0;
   pos = 0;
 
-  delay(500);
 }

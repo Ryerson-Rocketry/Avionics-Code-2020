@@ -2,13 +2,7 @@
 
 
 #include <encoder_rrc_v2_4.h>
-
-
 #include <Adafruit_BMP280.h>
-//#include <TinyGPS++.h>
-
-
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -41,7 +35,7 @@
         ==> ACK/NACK bits are sent by the slave
         ==> Wire.requestFrom() for reading and Wire.write() for writing adds data to their respective buffer
           ==> Whereas, Wire.read() for reading and Wire.endTransmission(false or true) releases the data from their respective buffers
-            ==>Wire.endTransmission(false) maybe gives a terminator-Stop bit which sends the previous Wire.write() buffer then sends a Start bit to initialize transmission once more.
+            ==>Wire.endTransmission(false) maybe gives a terminator-top bit which sends the previous Wire.write() buffer then sends a Start bit to initialize transmission once more.
 
         ==> Both Wire.write() and Wire.read()deals with writing/reading 1 byte at a time
 
@@ -55,18 +49,8 @@ Adafruit_BMP280 bmp; // use I2C interface
 Adafruit_Sensor *bmp_temp = bmp.getTemperatureSensor();
 Adafruit_Sensor *bmp_pressure = bmp.getPressureSensor();
 
-//SDA - A4(Uno),20(mega), SCL-A5(uno),21(mega)
-
-/* -------------------if using SPI:
-  #define BMP_SCK  (13)
-  #define BMP_MISO (12)
-  #define BMP_MOSI (11)
-  #define BMP_CS   (10)
-*/
 
 
-//Adafruit_BMP280 bmp(BMP_CS); // hardware SPI
-//Adafruit_BMP280 bmp(BMP_CS, BMP_MOSI, BMP_MISO,  BMP_SCK);
 // ==================== 2. GPS:===========================
 
 
@@ -88,7 +72,7 @@ Adafruit_Sensor *bmp_pressure = bmp.getPressureSensor();
 */
 
 
-#define GPS Serial2 //(serial2= TX-,RX-7)
+#define GPS Serial1 //(serial2= TX-,RX-7)
 #define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
 #define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
 #define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"

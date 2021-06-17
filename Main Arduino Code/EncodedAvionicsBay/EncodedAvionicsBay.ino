@@ -10,8 +10,8 @@
 
 
 #define GPS Serial2 // RX, TX
-#define debug_GPS false
-bool  debug_SD = true; 
+bool debug_GPS = false;
+bool  debug_SD = true;
 
 
 // NOTE: '-----?' = check/look further into
@@ -91,6 +91,7 @@ String nmea[15];
 String labels[] = {"RMC ID:\t ", "Time:\t ", "Data Validity (A=Y, V=N):\t ", "Latitude:\t ", "NS indicator:\t ", "Longitude:\t ", "EW indicator:\t ", "Speed:\t ", "Course over GND:\t", "Date:\t", "Mag variation:\t", "Mag variation2:\t ", "Pos Mode:\t", "Nav Status:\t", "Checksum:\t", "CR&LF:\t"}; // in order of actual nmea code being read
 //char PMTK_commands[55]; // max string length of PMTK command=50 + \r\n ~= 54 char total
 
+String GPS_header = "RMC";
 
 //=================== 3. ADXL357Z=============================
 
@@ -155,7 +156,7 @@ void setup() {
   //======================initialize SD card:========================
 
 
- //INIT_SD_CARD(debug_SD,sd_CSpin,dataFile);
+  INIT_SD_CARD(debug_SD, sd_CSpin, dataFile);
 
 
   //==============================================================
@@ -171,25 +172,26 @@ void loop() {
 
 
   //===========================GPS:=======================
+  READ_GPS(debug_GPS, GPS_header, nmea);
 
 
-    GPS_latitude = (nmea[3].toFloat()) / 100;
-    GPS_longitude = (nmea[5].toFloat()) / 100;
+  GPS_latitude = (nmea[3].toFloat()) / 100;
+  GPS_longitude = (nmea[5].toFloat()) / 100;
 
-    if (debug_GPS == true)
-    {
-      Serial.print(labels[3]);
+  if (debug_GPS == true)
+  {
+    Serial.print(labels[3]);
 
-      Serial.print(GPS_latitude);
-      Serial.println(nmea[4]);
+    Serial.print(GPS_latitude);
+    Serial.println(nmea[4]);
 
-      Serial.print(labels[5]);
-      Serial.print(GPS_longitude);
-      Serial.println(nmea[6]);
-      delay(50);
-    }
+    Serial.print(labels[5]);
+    Serial.print(GPS_longitude);
+    Serial.println(nmea[6]);
+    delay(50);
+  }
 
-  
+
 
 
 
@@ -316,7 +318,7 @@ void loop() {
   float sensorArray[6] = {float(t), GPS_latitude, GPS_longitude, BMP_temp, BMP_press, BMP_alt};
   if ((t % 8) == 1 ) // prints to file every 8 intervals
   {
-  // SD_CARD_WRITE(debug_SD, sd_CSpin, dataFile, sensorString, sensorArray);
+    SD_CARD_WRITE(debug_SD, sd_CSpin, dataFile, sensorString, sensorArray);
 
   }
   //===========================================================================================
@@ -345,8 +347,8 @@ void loop() {
 
     Serial.write(*encPress);
 
-    char debug2 = 'N'; // debugg to see if serial.write worked
-    if (debug2 == 'Y')
+    bool debug2 = false; // debugg to see if serial.write worked
+    if (debug2 == true)
     {
       Serial.println(*encPress, DEC);
 
@@ -369,10 +371,51 @@ void loop() {
 
 }
 
-//==================================FUNCTIONS:=================================
-int INIT_SD_CARD(bool debug_SD, int sd_CSpin, File dataFile) 
+
+//************************** FUNCTIONS: *********************************************
+//********************************************************************************
+int READ_GPS(bool debug_GPS, String GPS_header, String *nmea)
+{
+  String GPS_message, GPS_ID;
+
+  if (GPS.find(GPS_header) )
   {
-   
+
+
+    GPS_message = GPS.readStringUntil('\n');
+    for (int i = 0; i < GPS_message.length(); i++) {
+      if (GPS_message.substring(i, i + 1) == ",") {// if char in string=',' create a substring from i to i+1 position:
+        nmea[pos] = GPS_message.substring(stringplace, i);
+        stringplace = i + 1; //stringplace is used to get all characters within two "," thus used as another counter
+        pos++;// indexing for nmea array==> basically index for substring
+        // pos = substring(all characters per substring), i = entire string (all characters in string)
+      }
+      if (i == GPS_message.length() - 1) {
+        nmea[pos] = GPS_message.substring(stringplace, i);
+      }
+    }
+  }
+  else
+  {
+    if (debug_GPS == true)
+    {
+      Serial.println("No GPRMC NMEA code detected");
+    }
+  }
+
+
+
+  stringplace = 0;
+  pos = 0;
+
+  return 0;
+}
+
+
+
+int INIT_SD_CARD(bool debug_SD, int sd_CSpin, File dataFile)
+{
+
   // see if the card is present and can be initialized:
   if (SD.begin(sd_CSpin))
   {
@@ -383,7 +426,7 @@ int INIT_SD_CARD(bool debug_SD, int sd_CSpin, File dataFile)
   else  {
     Serial.println("Card failed, or not present");
     // don't do anything more:
-    while (1);
+    while (1); delay(10);
   }
 
 
@@ -397,6 +440,7 @@ int INIT_SD_CARD(bool debug_SD, int sd_CSpin, File dataFile)
       Serial.println("#################### PRINTING SD card data from data.txt ###########################");
       while (dataFile.available()) {
         Serial.write(dataFile.read());
+        delay(10);
       }
       Serial.println("#####################################################################################");
 
@@ -410,53 +454,38 @@ int INIT_SD_CARD(bool debug_SD, int sd_CSpin, File dataFile)
   else  {
     Serial.println("data.txt doesn't exist.");
   }
-  
-return 0;
+
+  return 0;
+}
+int SD_CARD_WRITE(bool debug_SD, int sd_CSpin, File dataFile, String* sensorString, float* sensorArray)
+{
+
+  dataFile = SD.open("data.txt", FILE_WRITE);
+  if (dataFile)
+  {
+
+    for (int count = 0; count < 6; count++)
+    {
+      sensorString[count] += String(sensorArray[count]);
+      dataFile.print(sensorString[count]);
+      dataFile.print("_");
+      delay(10);
+    }
+    dataFile.println("");
+    //dataFile.flush();
+
+    dataFile.close();
   }
-int SD_CARD_WRITE(bool debug_SD, int sd_CSpin, File dataFile, String* sensorString,float* sensorArray) 
-{
-  
-    dataFile = SD.open("data.txt", FILE_WRITE);
-    if (dataFile)
+  else
+  {
+    if (debug_SD == true)
     {
-
-      for (int count = 0; count < 6; count++)
-      {
-        sensorString[count] += String(sensorArray[count]);
-        dataFile.print(sensorString[count]);
-      }
-
-      //dataFile.flush();
-
-      dataFile.close();
-    }
-    else
-    {
-      if (debug_SD == true)
-      {
       Serial.println("ERROR OPENING data.txt file");
-      }
     }
+  }
 
-    return 0;
+  return 0;
 }
-
-
-
-
-
-
-
-// FOR MPU-AXL377: arduino map function
-//Converts rawAccel to volts or rawAccel to scaledAccel:
-//from:https://ez.analog.com/mems/f/q-a/89030/how-to-calibrate-accelerometer-adxl377?ReplySortBy=CreatedDate&ReplySortOrder=Ascending
-float map_float(float x, float minInput, float maxInput, float minOut, float maxOut)
-{
-  float conv;
-  conv = (x - minInput) * (maxOut - minOut) / (maxInput - minInput) + minOut;
-  return conv;
-}
-
 
 //Filters Data through a low pass filter. Use "alpha" to adjust filter strength.
 float LowPassFilter(float OldVal, float NewRawVal, float alpha)
@@ -465,3 +494,6 @@ float LowPassFilter(float OldVal, float NewRawVal, float alpha)
   ProcessedVal = alpha * OldVal + (NewRawVal) * (1 - alpha);
   return ProcessedVal;
 }
+
+//*******************************************************************************
+//*******************************************************************************

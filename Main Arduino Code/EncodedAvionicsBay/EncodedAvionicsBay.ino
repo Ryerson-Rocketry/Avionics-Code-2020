@@ -11,6 +11,7 @@
 
 #define GPS Serial2 // RX, TX
 #define debug_GPS false
+bool  debug_SD = true; 
 
 
 // NOTE: '-----?' = check/look further into
@@ -100,7 +101,6 @@ Sd2Card card;
 SdVolume Volume;
 SdFile root;
 int sd_CSpin = BUILTIN_SDCARD;
-char debug_SD = 'Y';
 File dataFile;
 
 //int sdWrite_interval = 0; // sets interval time in count
@@ -346,25 +346,8 @@ void loop() {
   float sensorArray[6] = {float(t), GPS_latitude, GPS_longitude, BMP_temp, BMP_press, BMP_alt};
   if ((t % 8) == 1 ) // prints to file every 8 intervals
   {
+  int SD_CARD_WRITE(debug_SD, sd_CSpin, dataFile, sensorString, sensorArray);
 
-    dataFile = SD.open("data.txt", FILE_WRITE);
-    if (dataFile)
-    {
-
-      for (int count = 0; count < 6; count++)
-      {
-        sensorString[count] += String(sensorArray[count]);
-        dataFile.print(sensorString[count]);
-      }
-
-      //dataFile.flush();
-
-      dataFile.close();
-    }
-    else
-    {
-      Serial.println("ERROR OPENING data.txt file");
-    }
   }
   //===========================================================================================
   t++;
@@ -417,9 +400,9 @@ void loop() {
 }
 
 //==================================FUNCTIONS:=================================
-int INIT_SD_CARD(char debug_SD, int sd_CSpin, File dataFile) 
+int INIT_SD_CARD(bool debug_SD, int sd_CSpin, File dataFile) 
   {
-    
+   
   // see if the card is present and can be initialized:
   if (SD.begin(sd_CSpin))
   {
@@ -427,7 +410,7 @@ int INIT_SD_CARD(char debug_SD, int sd_CSpin, File dataFile)
   }
 
 
-  else if (!SD.begin(sd_CSpin)) {
+  else  {
     Serial.println("Card failed, or not present");
     // don't do anything more:
     while (1);
@@ -439,7 +422,7 @@ int INIT_SD_CARD(char debug_SD, int sd_CSpin, File dataFile)
     dataFile = SD.open("data.txt", FILE_READ);
 
     // read from the file until there's nothing else in it:
-    if (debug_SD == 'Y') // only reads dataFile and writes to serial if debugging
+    if (debug_SD == true) // only reads dataFile and writes to serial if debugging
     {
       Serial.println("#################### PRINTING SD card data from data.txt ###########################");
       while (dataFile.available()) {
@@ -457,8 +440,42 @@ int INIT_SD_CARD(char debug_SD, int sd_CSpin, File dataFile)
   else  {
     Serial.println("data.txt doesn't exist.");
   }
+  
 return 0;
   }
+int SD_CARD_WRITE(bool debug_SD, int sd_CSpin, File dataFile, String* sensorString,float* sensorArray) 
+{
+  
+    dataFile = SD.open("data.txt", FILE_WRITE);
+    if (dataFile)
+    {
+
+      for (int count = 0; count < 6; count++)
+      {
+        sensorString[count] += String(sensorArray[count]);
+        dataFile.print(sensorString[count]);
+      }
+
+      //dataFile.flush();
+
+      dataFile.close();
+    }
+    else
+    {
+      if (debug_SD == true)
+      {
+      Serial.println("ERROR OPENING data.txt file");
+      }
+    }
+
+    return 0;
+}
+
+
+
+
+
+
 
 // FOR MPU-AXL377: arduino map function
 //Converts rawAccel to volts or rawAccel to scaledAccel:

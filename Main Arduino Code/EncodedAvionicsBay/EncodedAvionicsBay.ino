@@ -155,43 +155,8 @@ void setup() {
   //======================initialize SD card:========================
 
 
-  // see if the card is present and can be initialized:
-  if (SD.begin(sd_CSpin))
-  {
-    Serial.println("card initialized.");
-  }
+ INIT_SD_CARD(debug_SD,sd_CSpin,dataFile);
 
-
-  else if (!SD.begin(sd_CSpin)) {
-    Serial.println("Card failed, or not present");
-    // don't do anything more:
-    while (1);
-  }
-
-
-  if (SD.exists("data.txt")) {
-    Serial.println("data.txt exists.");
-    dataFile = SD.open("data.txt", FILE_READ);
-
-    // read from the file until there's nothing else in it:
-    if (debug_SD == 'Y') // only reads dataFile and writes to serial if debugging
-    {
-      Serial.println("#################### PRINTING SD card data from data.txt ###########################");
-      while (dataFile.available()) {
-        Serial.write(dataFile.read());
-      }
-      Serial.println("#####################################################################################");
-
-    }
-    //  close the file then delete it :
-    dataFile.close();
-    SD.remove("data.txt");
-  }
-
-
-  else  {
-    Serial.println("data.txt doesn't exist.");
-  }
 
   //==============================================================
 
@@ -452,7 +417,48 @@ void loop() {
 }
 
 //==================================FUNCTIONS:=================================
+int INIT_SD_CARD(char debug_SD, int sd_CSpin, File dataFile) 
+  {
+    
+  // see if the card is present and can be initialized:
+  if (SD.begin(sd_CSpin))
+  {
+    Serial.println("card initialized.");
+  }
 
+
+  else if (!SD.begin(sd_CSpin)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    while (1);
+  }
+
+
+  if (SD.exists("data.txt")) {
+    Serial.println("data.txt exists.");
+    dataFile = SD.open("data.txt", FILE_READ);
+
+    // read from the file until there's nothing else in it:
+    if (debug_SD == 'Y') // only reads dataFile and writes to serial if debugging
+    {
+      Serial.println("#################### PRINTING SD card data from data.txt ###########################");
+      while (dataFile.available()) {
+        Serial.write(dataFile.read());
+      }
+      Serial.println("#####################################################################################");
+
+    }
+    //  close the file then delete it :
+    dataFile.close();
+    SD.remove("data.txt");
+  }
+
+
+  else  {
+    Serial.println("data.txt doesn't exist.");
+  }
+return 0;
+  }
 
 // FOR MPU-AXL377: arduino map function
 //Converts rawAccel to volts or rawAccel to scaledAccel:

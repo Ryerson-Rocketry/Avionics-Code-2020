@@ -69,18 +69,13 @@ void setup() {
  
     //==================== RESET EVERYTHING(if done see datasheet to double check ==>i believe it deletes some factory set data which is important)=============
  
-   I2C_ACCEL(debug, addr_ADXL357Z, register_RESET, 'W', 0x52, 1);
 
 
 
   // =========== shut off temp processing:==============
   uint8_t powerControl_data[8];
-  I2C_ACCEL(debug, addr_ADXL357Z, register_POWER_CTL, 'R', 0x00, 1);
 
-  while (Wire1.available() > 0)
-  {
-    *powerControl_data = Wire1.read();
-  }
+  
   Serial.print("power control data is:\t");
 
   for (unsigned int ii = 0; ii < sizeof(powerControl_data) / sizeof(powerControl_data[0]); ii=ii+1)
@@ -182,45 +177,39 @@ void loop() {
 
 }
 // functions:
-
-int I2C_ACCEL(char debug, uint8_t address, uint8_t Register, char READ_OR_WRITE, uint8_t byte2write, int numbBytes2read)
+uint8_t I2C_WRITE(uint8_t address, uint8_t Register,uint8_t bits2Write)
 {
   Wire1.beginTransmission(address);
-  Wire1.write((byte)Register);
-  if (READ_OR_WRITE == 'W')
+  Wire1.write(Register);
+  if (bits2Write != 0)
   {
-    Wire1.write((byte)byte2write);
-    Wire1.endTransmission();
-
+    Wire1.write(bits2Write);
   }
-  else if (READ_OR_WRITE == 'R')
-  {
-    Wire1.endTransmission(false);
-    /*Sending a Restart by setting endTransmission(false), which doesnt endTransmission,keeping the connection active, and allows for multiple consecutive writes:
-      also sends the buffer data to mpu as data wont send with Wire.h without Wire.endTransmission call
-      it may give a terminator-Stop bit which sends the previous Wire.write() buffer then sends a Start bit to initialize transmission once more.
-    */
+  Wire1.endTransmission();
+  return (Wire1.endTransmission());
+}
+uint8_t I2C_READ(uint8_t address, uint8_t Register, uint32_t numbBytes2read,uint8_t* read_data)
+{
+ 
+  I2C_WRITE(address,Register,0); 
+  
 
     Wire1.requestFrom((int)address, numbBytes2read);
     /* default is true and initiates after data is requested ==> this acts like Wire.endTransmision
       but the reason why this is not used as a substitute to the above Wire.endTransmission(false
       is because if it were to be done the data wont be sent from the buffer */
 
+
+  if (Wire1.available() == numbBytes2read)
+  {
+      for (unsigned int count2 =0; count2 < numbBytes2read; count2++)
+      {
+        read_data[count2] = Wire1.read();
+      }
+
   }
   // check to see status of transmission:
-  if (debug == 'Y')
-  {
-    if ( Wire1.endTransmission(true) == 0)
-    {
-      Serial.println(F("\n TRANSMISSION SUCCESSFULL !!! [slave(ADXL357Z) sent ACK(Acknowledge) bit] "));
-    }
-    else
-    {
-      Serial.print(F("\n TRANSMISSION PROBLEM, Return is: \t"));
-      Serial.println(Wire1.endTransmission(true));
-
-    }
-  }
-  return 0;
+ 
+  return Wire1.endTransmission();
 
 }

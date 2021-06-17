@@ -1,4 +1,4 @@
-//#include <Adafruit_PMTK.h>
+#include <Adafruit_PMTK.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -6,7 +6,6 @@
 //#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
 //#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
 //#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
-//#define isGPS_Beitian true // if using ground station "Beitian" gps =true
 
 #define debug_GPS true
 
@@ -15,7 +14,7 @@ int stringplace = 0;
 float  Latitude, Longitude;
 
 String nmea[15];
-String labels[]={"RMC ID:\t ", "Time:\t ", "Data Validity (A=Y, V=N):\t ", "Latitude:\t ", "NS indicator:\t ", "Longitude:\t ", "EW indicator:\t ", "Speed:\t ", "Course over GND:\t","Date:\t","Mag variation:\t","Mag variation2:\t ","Pos Mode:\t","Nav Status:\t", "Checksum:\t","CR&LF:\t"};// in order of actual nmea code being read
+String labels[] = {"RMC ID:\t ", "Time:\t ", "Data Validity (A=Y, V=N):\t ", "Latitude:\t ", "NS indicator:\t ", "Longitude:\t ", "EW indicator:\t ", "Speed:\t ", "Course over GND:\t", "Date:\t", "Mag variation:\t", "Mag variation2:\t ", "Pos Mode:\t", "Nav Status:\t", "Checksum:\t", "CR&LF:\t"}; // in order of actual nmea code being read
 //char PMTK_commands[55]; // max string length of PMTK command=50 + \r\n ~= 54 char total
 void setup() {
   Serial.begin(115200);
@@ -29,26 +28,12 @@ void loop() {
 
 
 
-  String GPS_message,GPS_ID;
-  GPS.setTimeout(300); // in ms ; waits to read gps serial
-  while (GPS.available() > 0)
+  String GPS_message, GPS_ID;
+
+
+
+  if (GPS.find("RMC") )
   {
-    GPS.readStringUntil('\n');
-    /*
-  GPS.read();
-  if (GPS.find('$'))
-   {
-    GPS_ID = GPS.readStringUntil(',');
-
-    
-   }
-   */
-  }
-
-
- //if ((GPS_ID.substring(2,4)=="RMC")) { 
- if((GPS.find("$GNRMC"))||( GPS.find("$GPRMC")))
- {
     GPS_message = GPS.readStringUntil('\n');
     for (int i = 0; i < GPS_message.length(); i++) {
       if (GPS_message.substring(i, i + 1) == ",") {// if char in string=',' create a substring from i to i+1 position:
@@ -61,7 +46,7 @@ void loop() {
         nmea[pos] = GPS_message.substring(stringplace, i);
       }
     }
-    // ===add to check if data = valid so if GPRMC contains "A":===
+    // ===add to check if data = valid so if GPRMC contains ",A,":===
 
     //==============================================================
     Latitude = (nmea[3].toFloat()) / 100;
@@ -72,20 +57,23 @@ void loop() {
       Serial.print(labels[3]);
 
       Serial.print(Latitude);
-     Serial.println(nmea[4]);
-      
+      Serial.println(nmea[4]);
+
       Serial.print(labels[5]);
       Serial.print(Longitude);
       Serial.println(nmea[6]);
     }
 
   }
-  else {
+  else
+  {
     if (debug_GPS == true)
     {
-      Serial.print("No GPRMC NMEA code detected");
+      Serial.println("No GPRMC NMEA code detected");
     }
   }
+
+
 
   stringplace = 0;
   pos = 0;

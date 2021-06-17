@@ -62,8 +62,8 @@ void setup() {
     Serial.println(F("Send byte to start data processing"));
     delay(5000);
   }
-  Wire1.setSCL(37);
-  Wire1.setSDA(38);
+ // Wire1.setSCL(37);
+ // Wire1.setSDA(38);
   Wire1.begin(addr_ADXL357Z);
 
  
@@ -74,7 +74,7 @@ void setup() {
 
 
   // =========== shut off temp processing:==============
-  uint8_t powerControl_data[1];
+  uint8_t powerControl_data[8];
   I2C_ACCEL(debug, addr_ADXL357Z, register_POWER_CTL, 'R', 0x00, 1);
 
   while (Wire1.available() > 0)

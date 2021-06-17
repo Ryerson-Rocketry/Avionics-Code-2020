@@ -1,67 +1,81 @@
 #include <Adafruit_PMTK.h>
 #include <string.h>
 #include <stdio.h>
-#define GPS Serial2 // RX, TX
-#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
-#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
-#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
 
-int pos=0;
+#define GPS Serial2 // RX, TX
+//#define PMTK_SET_NMEA_UPDATERATE_1HZ "$PMTK220,1000*1F\r\n"
+//#define PMTK_SET_NMEA_UPDATERATE_5HZ "$PMTK220,200*2C\r\n"
+//#define PMTK_SET_NMEA_UPDATERATE_10HZ "$PMTK220,100*2F\r\n"
+
+#define debug_GPS true
+
+int pos = 0;
 int stringplace = 0;
-float velocity;
+float  Latitude, Longitude;
 
 String nmea[15];
-String labels[12] {"Time: ", "Status: ", "Latitude: ", "Hemisphere: ", "Longitude: ", "Hemisphere: ", "Speed: ", "Track Angle: ", "Date: "};
-//char PMTK_commands[55]; // max string length of PMTK command=50 + \r\n ~= 54 char total 
+String labels[] = {"RMC ID:\t ", "Time:\t ", "Data Validity (A=Y, V=N):\t ", "Latitude:\t ", "NS indicator:\t ", "Longitude:\t ", "EW indicator:\t ", "Speed:\t ", "Course over GND:\t", "Date:\t", "Mag variation:\t", "Mag variation2:\t ", "Pos Mode:\t", "Nav Status:\t", "Checksum:\t", "CR&LF:\t"}; // in order of actual nmea code being read
+//char PMTK_commands[55]; // max string length of PMTK command=50 + \r\n ~= 54 char total
 void setup() {
   Serial.begin(115200);
   GPS.begin(9600);
   // =============== APPLY PMTK COMMANDS: ===============
-/* Serial.write is for sending BIN data, doesnt work with Serial.print but 
-Serial.printf(formatted string, and in standard(stdio.h) lib & doesnt specify new line automatically) is for sending strings/chars
- */
-  //strcpy(PMTK_commands,PMTK_SET_NMEA_UPDATE_1HZ);
-  //strcat(PMTK_commands,"\r\n");
-  //GPS.printf(PMTK_commands);
-  GPS.printf(PMTK_SET_NMEA_UPDATERATE_1HZ);
-  GPS.flush();
 
   // ====================================================
 }
 
 void loop() {
-  
 
-  while (GPS.available() > 0)
+
+
+  String GPS_message, GPS_ID;
+
+
+
+  if (GPS.find("RMC") )
   {
-    GPS.read();
-
-  }
-  
-  if (GPS.find("$GPRMC,")) {
-    String tempMsg = GPS.readStringUntil('\n');
-    for (int i = 0; i < tempMsg.length(); i++) {
-      if (tempMsg.substring(i, i + 1) == ",") {// if char in string=',' from i to i+1 position:
-        nmea[pos] = tempMsg.substring(stringplace, i); 
+    GPS_message = GPS.readStringUntil('\n');
+    for (int i = 0; i < GPS_message.length(); i++) {
+      if (GPS_message.substring(i, i + 1) == ",") {// if char in string=',' create a substring from i to i+1 position:
+        nmea[pos] = GPS_message.substring(stringplace, i);
         stringplace = i + 1; //stringplace is used to get all characters within two "," thus used as another counter
-        pos++;// indexing for nmea array
+        pos++;// indexing for nmea array==> basically index for substring
+        // pos = substring(all characters per substring), i = entire string (all characters in string)
       }
-      if (i == tempMsg.length() - 1) {
-        nmea[pos] = tempMsg.substring(stringplace, i);
+      if (i == GPS_message.length() - 1) {
+        nmea[pos] = GPS_message.substring(stringplace, i);
       }
     }
-    // ===add to check if data = valid so if GPRMC contains "A":===
-    
+    // ===add to check if data = valid so if GPRMC contains ",A,":===
+
     //==============================================================
-    
-    //velocity = nmea[6].toFloat()* 0.514444; // knots to m/s conversion
-    Serial.print(labels[2]);
-    Serial.println(nmea[2].toFloat());    
+    Latitude = (nmea[3].toFloat()) / 100;
+    Longitude = (nmea[5].toFloat()) / 100;
+
+    if (debug_GPS == true)
+    {
+      Serial.print(labels[3]);
+
+      Serial.print(Latitude);
+      Serial.println(nmea[4]);
+
+      Serial.print(labels[5]);
+      Serial.print(Longitude);
+      Serial.println(nmea[6]);
+    }
+
   }
-  else {
-    Serial.print("No GPRMC NMEA code detected");
-    
+  else
+  {
+    if (debug_GPS == true)
+    {
+      Serial.println("No GPRMC NMEA code detected");
+    }
   }
+
+
+
   stringplace = 0;
   pos = 0;
+
 }

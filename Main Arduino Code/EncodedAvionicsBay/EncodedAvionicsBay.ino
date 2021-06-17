@@ -108,7 +108,7 @@ File dataFile;
 
 //============================= Shared Global Variables(Global Variables used by all sensors): =============================================
 
-char debug = 'Y';// 'Y' if debugging and printing all testing values to serial monitor
+bool debug = true;
 int t = 0;
 //==========================================================================================================================================
 
@@ -155,7 +155,7 @@ void setup() {
   //======================initialize SD card:========================
 
 
- INIT_SD_CARD(debug_SD,sd_CSpin,dataFile);
+ //INIT_SD_CARD(debug_SD,sd_CSpin,dataFile);
 
 
   //==============================================================
@@ -173,29 +173,6 @@ void loop() {
   //===========================GPS:=======================
 
 
-
-
-  String GPS_message, GPS_ID;
-
-
-
-  if (GPS.find("RMC"))
-  {
-    GPS_message = GPS.readStringUntil('\n');
-    for (int i = 0; i < GPS_message.length(); i++) {
-      if (GPS_message.substring(i, i + 1) == ",") {// if char in string=',' create a substring from i to i+1 position:
-        nmea[pos] = GPS_message.substring(stringplace, i);
-        stringplace = i + 1; //stringplace is used to get all characters within two "," thus used as another counter
-        pos++;// indexing for nmea array==> basically index for substring
-        // pos = substring(all characters per substring), i = entire string (all characters in string)
-      }
-      if (i == GPS_message.length() - 1) {
-        nmea[pos] = GPS_message.substring(stringplace, i);
-      }
-    }
-    // ===add to check if data = valid so if GPRMC contains "A":===
-
-    //==============================================================
     GPS_latitude = (nmea[3].toFloat()) / 100;
     GPS_longitude = (nmea[5].toFloat()) / 100;
 
@@ -209,19 +186,12 @@ void loop() {
       Serial.print(labels[5]);
       Serial.print(GPS_longitude);
       Serial.println(nmea[6]);
+      delay(50);
     }
 
-  }
+  
 
-  else {
-    if (debug_GPS == true)
-    {
-      Serial.print("No GPRMC NMEA code detected");
-    }
-  }
 
-  stringplace = 0;
-  pos = 0;
 
   //================================================================================
 
@@ -229,7 +199,7 @@ void loop() {
 
   BMP_temp = bmp.readTemperature();
   BMP_press = bmp.readPressure();
-  BMP_alt = bmp.readAltitude();
+  BMP_alt = bmp.readAltitude(1013.25);/* Adjusted to local forecast! */
 
 
 
@@ -259,7 +229,7 @@ void loop() {
   encode(BMP_alt, 0x00 , t, encAlt);
 
   //======Printing values===============================
-  if (debug == 'Y')
+  if (debug == true)
   {
     //=========== 1.GPS=====================
     Serial.println(F("\n****************** GPS: ********************"));
@@ -346,7 +316,7 @@ void loop() {
   float sensorArray[6] = {float(t), GPS_latitude, GPS_longitude, BMP_temp, BMP_press, BMP_alt};
   if ((t % 8) == 1 ) // prints to file every 8 intervals
   {
-  int SD_CARD_WRITE(debug_SD, sd_CSpin, dataFile, sensorString, sensorArray);
+  // SD_CARD_WRITE(debug_SD, sd_CSpin, dataFile, sensorString, sensorArray);
 
   }
   //===========================================================================================
@@ -356,7 +326,7 @@ void loop() {
 
   //===================WRITING TO SERIAL FOR float DATA TRANSMISSION:============================
 
-  if (debug == 'N')
+  if (debug == false)
   {
     //-------GPS------
 

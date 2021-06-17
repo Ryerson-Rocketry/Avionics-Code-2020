@@ -11,7 +11,7 @@
 
 int pos = 0;
 int stringplace = 0;
-float  Latitude, Longitude;
+float  GPS_latitude, GPS_longitude;
 
 String nmea[15];
 String labels[] = {"RMC ID:\t ", "Time:\t ", "Data Validity (A=Y, V=N):\t ", "Latitude:\t ", "NS indicator:\t ", "Longitude:\t ", "EW indicator:\t ", "Speed:\t ", "Course over GND:\t", "Date:\t", "Mag variation:\t", "Mag variation2:\t ", "Pos Mode:\t", "Nav Status:\t", "Checksum:\t", "CR&LF:\t"}; // in order of actual nmea code being read
@@ -49,18 +49,18 @@ void loop() {
     // ===add to check if data = valid so if GPRMC contains ",A,":===
 
     //==============================================================
-    Latitude = (nmea[3].toFloat()) / 100;
-    Longitude = (nmea[5].toFloat()) / 100;
+    GPS_latitude = (nmea[3].toFloat()) / 100;
+    GPS_longitude = (nmea[5].toFloat()) / 100;
 
     if (debug_GPS == true)
     {
       Serial.print(labels[3]);
 
-      Serial.print(Latitude);
+      Serial.print(GPS_latitude);
       Serial.println(nmea[4]);
 
       Serial.print(labels[5]);
-      Serial.print(Longitude);
+      Serial.print(GPS_longitude);
       Serial.println(nmea[6]);
     }
 

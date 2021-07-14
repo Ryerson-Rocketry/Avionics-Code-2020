@@ -1,0 +1,312 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+Wire Wire Line
+	800  4050 1710 4030
+Wire Wire Line
+	800  4050 800  7640
+Wire Wire Line
+	6130 7610 6130 5660
+Wire Wire Line
+	5390 5670 6130 5660
+Wire Wire Line
+	800  7640 6130 7610
+$Comp
+L Device:CP C2
+U 1 1 6028C494
+P 6830 4680
+F 0 "C2" V 6960 4650 50  0000 L CNN
+F 1 "0.1uF" V 6920 4360 50  0000 L CNN
+F 2 "Capacitor_SMD:CP_Elec_3x5.3" H 6868 4530 50  0001 C CNN
+F 3 "~" H 6830 4680 50  0001 C CNN
+	1    6830 4680
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	6680 4500 6710 4500
+Wire Wire Line
+	6980 4680 7010 4200
+Connection ~ 6980 4680
+Connection ~ 7010 4200
+$Comp
+L RRC2021_PCB1-rescue:Teensy3.6-teensy microcontroller1
+U 1 1 60257C60
+P 2860 3180
+F 0 "microcontroller1" H 2860 5617 60  0000 C CNN
+F 1 "Teensy3.6" H 2860 5511 60  0000 C CNN
+F 2 "Teensy Microcontrollers:Teensy35_36" H 2860 3230 60  0001 C CNN
+F 3 "" H 2860 3230 60  0000 C CNN
+	1    2860 3180
+	1    0    0    -1  
+$EndComp
+Connection ~ 7000 3770
+Wire Wire Line
+	7010 4200 7000 3770
+Wire Wire Line
+	6710 3900 6700 3770
+Connection ~ 6700 3770
+$Comp
+L Device:CP C1
+U 1 1 6023258A
+P 6850 3770
+F 0 "C1" V 6930 3460 50  0000 L CNN
+F 1 "0.33uF" V 6840 3390 50  0000 L CNN
+F 2 "Capacitor_SMD:CP_Elec_3x5.3" H 6888 3620 50  0001 C CNN
+F 3 "~" H 6850 3770 50  0001 C CNN
+	1    6850 3770
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	6700 3410 6700 3770
+Wire Wire Line
+	7000 3410 7000 3770
+Connection ~ 7000 3410
+$Comp
+L Device:Battery_Cell Battery1
+U 1 1 60317B3E
+P 6900 3410
+F 0 "Battery1" V 6720 3410 50  0000 L CNN
+F 1 "9V" V 6810 3390 50  0000 L CNN
+F 2 "Mounting Holes:1x02" V 6900 3470 50  0001 C CNN
+F 3 "~" V 6900 3470 50  0001 C CNN
+	1    6900 3410
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Regulator_Linear:LM7805_TO220 linear_volt_reg1
+U 1 1 6024F7BB
+P 6710 4200
+F 0 "linear_volt_reg1" H 6710 4442 50  0000 C CNN
+F 1 "LM7805_TO220" H 6710 4351 50  0000 C CNN
+F 2 "Package_TO_SOT_THT:TO-220-3_Vertical" H 6710 4425 50  0001 C CIN
+F 3 "https://www.onsemi.cn/PowerSolutions/document/MC7800-D.PDF" H 6710 4150 50  0001 C CNN
+	1    6710 4200
+	0    -1   1    0   
+$EndComp
+Wire Wire Line
+	5190 5420 5190 5510
+Wire Wire Line
+	4390 5030 4390 4530
+Wire Wire Line
+	4390 4530 4010 4530
+Wire Wire Line
+	4470 5610 4470 5030
+Connection ~ 4470 5030
+Wire Wire Line
+	4470 5030 4390 5030
+Wire Wire Line
+	5190 5420 6980 5420
+Wire Wire Line
+	4470 5030 5210 5030
+Connection ~ 5210 5030
+Wire Wire Line
+	5210 5030 6680 5030
+Wire Wire Line
+	7000 2870 6340 2870
+Wire Wire Line
+	6340 2870 6340 4590
+Wire Wire Line
+	6340 4590 5310 4590
+Wire Wire Line
+	4610 4060 4290 4060
+Wire Wire Line
+	4290 4060 4290 3530
+Wire Wire Line
+	4290 3530 4010 3530
+Wire Wire Line
+	1470 1130 1710 1130
+Wire Wire Line
+	5210 3795 5210 5030
+Wire Wire Line
+	5310 4590 5310 3795
+Wire Wire Line
+	4610 3795 4610 4060
+$Comp
+L RRC2021_PCB1-rescue:RFD900+-RF_Module RF1
+U 1 1 601DEA0B
+P 5310 2895
+F 0 "RF1" H 5770 3235 50  0000 R CNN
+F 1 "RFD900+" H 5820 3145 50  0000 R CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_2x08_P2.54mm_Horizontal" H 5310 2895 50  0001 C CNN
+F 3 "" H 5310 2895 50  0001 C CNN
+	1    5310 2895
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	1470 830  1470 1130
+Wire Wire Line
+	640  7740 6540 7740
+Wire Wire Line
+	6540 7740 6540 5580
+Wire Wire Line
+	5280 5580 6540 5580
+Wire Wire Line
+	1710 1230 1280 1230
+Wire Wire Line
+	1280 1230 1280 660 
+Wire Wire Line
+	1470 830  4910 830 
+Wire Wire Line
+	4910 830  4910 2645
+Wire Wire Line
+	1280 660  5010 660 
+Wire Wire Line
+	5010 660  5010 2645
+Wire Wire Line
+	640  7740 640  3930
+Wire Wire Line
+	640  3930 1710 3930
+Connection ~ 6680 4680
+Wire Wire Line
+	6680 4680 6680 4500
+Wire Wire Line
+	7000 2870 7000 3410
+Wire Wire Line
+	6980 4680 6980 5420
+Wire Wire Line
+	6680 4680 6680 5030
+Wire Wire Line
+	4010 4630 4290 4630
+Wire Wire Line
+	4290 4630 4290 6080
+Wire Wire Line
+	4290 6080 3390 6080
+Wire Wire Line
+	3390 6080 3390 6185
+Wire Wire Line
+	3695 5610 4470 5610
+Connection ~ 4470 5610
+$Comp
+L RRC2021_PCB1-rescue:MS5611-RRC2021_PCB1-rescue U2
+U 1 1 60AF376A
+P 1565 6470
+F 0 "U2" V 2043 7021 50  0000 L CNN
+F 1 "MS5611" V 1725 6305 50  0000 L CNN
+F 2 "Mounting Holes:1x07" H 1565 6470 50  0001 C CNN
+F 3 "" H 1565 6470 50  0001 C CNN
+	1    1565 6470
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	3695 6000 2365 6000
+Wire Wire Line
+	2365 6000 2365 6370
+Wire Wire Line
+	3695 6000 3695 5610
+Wire Wire Line
+	3390 6185 2685 6185
+Wire Wire Line
+	2265 6185 2265 6370
+Wire Wire Line
+	1710 5530 1710 5330
+Wire Wire Line
+	1710 5530 2065 5530
+Wire Wire Line
+	1580 5700 1580 5230
+Wire Wire Line
+	1580 5230 1710 5230
+Wire Wire Line
+	2165 5700 1580 5700
+$Comp
+L RRC2021_PCB1-rescue:ADXL357z U1
+U 1 1 60B8F0A7
+P 3390 7375
+F 0 "U1" H 4190 8656 50  0000 C CNN
+F 1 "ADXL357z" H 4190 8565 50  0000 C CNN
+F 2 "Mounting Holes:ADXLZ" H 4190 8675 50  0001 C CNN
+F 3 "" H 4190 8675 50  0001 C CNN
+	1    3390 7375
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2065 6370 2065 5610
+Wire Wire Line
+	2915 5610 2065 5610
+Connection ~ 2065 5610
+Wire Wire Line
+	2065 5610 2065 5530
+Wire Wire Line
+	3590 6975 2685 6975
+Wire Wire Line
+	2685 6975 2685 6185
+Connection ~ 2685 6185
+Wire Wire Line
+	2685 6185 2265 6185
+Wire Wire Line
+	4090 7525 4090 7590
+Wire Wire Line
+	4190 7525 4190 7570
+Wire Wire Line
+	4190 7570 4835 7570
+Wire Wire Line
+	4835 7570 4835 5510
+Wire Wire Line
+	4835 5510 5190 5510
+Wire Wire Line
+	4090 7590 4870 7590
+Wire Wire Line
+	4870 5610 4470 5610
+Wire Wire Line
+	4870 7590 4870 5610
+$Comp
+L SparkFun-Resistors:4.7KOHM-0603-1_10W-1% R1
+U 1 1 60F082D6
+P 3160 6870
+F 0 "R1" H 3160 7170 45  0000 C CNN
+F 1 "4.7KOHM-0603-1_10W-1%" H 3160 7086 45  0000 C CNN
+F 2 "0603" H 3160 7020 20  0001 C CNN
+F 3 "" H 3160 6870 60  0001 C CNN
+F 4 "RES-07857" H 3160 6991 60  0000 C CNN "Field4"
+	1    3160 6870
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2915 6875 2915 5965
+Wire Wire Line
+	3590 6870 3590 6875
+Connection ~ 3590 6875
+Wire Wire Line
+	3590 6875 3590 6880
+Wire Wire Line
+	3360 6870 3590 6870
+Wire Wire Line
+	2165 5700 2165 6370
+Wire Wire Line
+	3820 5965 2915 5965
+$Comp
+L SparkFun-Resistors:4.7KOHM-0603-1_10W-1% R?
+U 1 1 60F2BA52
+P 3370 5860
+F 0 "R?" H 3370 6160 45  0000 C CNN
+F 1 "4.7KOHM-0603-1_10W-1%" H 3370 6076 45  0000 C CNN
+F 2 "0603" H 3370 6010 20  0001 C CNN
+F 3 "" H 3370 5860 60  0001 C CNN
+F 4 "RES-07857" H 3370 5981 60  0000 C CNN "Field4"
+	1    3370 5860
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3570 5860 3590 5860
+Wire Wire Line
+	3590 5860 3590 6675
+Wire Wire Line
+	2910 6870 2920 6870
+Connection ~ 2915 5965
+Wire Wire Line
+	2915 5965 2915 5610
+Connection ~ 2920 6870
+Wire Wire Line
+	2920 6870 2960 6870
+$EndSCHEMATC

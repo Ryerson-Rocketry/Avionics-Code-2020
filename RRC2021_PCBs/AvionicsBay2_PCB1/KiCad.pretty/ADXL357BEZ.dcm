@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP ADXL357BEZ
+D ANALOG DEVICES - ADXL357BEZ - MEMS ACCE MTR, DIGITAL, 3-AXIS, LCC-14
+K
+F https://componentsearchengine.com/Datasheets/2/ADXL357BEZ.pdf
+$ENDCMP
+#
+#End Doc Library
